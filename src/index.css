@@ -1068,6 +1068,90 @@ body {
   font-weight: 600;
 }
 
+/* Transfer Timer Warning */
+.transfer-timer-warning {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #FFF3CD 0%, #FFE69C 100%);
+  border: 3px solid #FF6B6B;
+  border-radius: 1rem;
+  margin-bottom: 2rem;
+  animation: pulse-border 2s ease-in-out infinite;
+}
+
+@keyframes pulse-border {
+  0%, 100% {
+    border-color: #FF6B6B;
+    box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.7);
+  }
+  50% {
+    border-color: #FF1493;
+    box-shadow: 0 0 0 10px rgba(255, 107, 107, 0);
+  }
+}
+
+.timer-icon {
+  font-size: 4rem;
+  animation: shake 0.5s ease-in-out infinite;
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: rotate(-5deg);
+  }
+  50% {
+    transform: rotate(5deg);
+  }
+}
+
+.timer-content h3 {
+  margin: 0 0 0.5rem 0;
+  color: #DC2626;
+  font-size: 1.3rem;
+}
+
+.timer-content p {
+  margin: 0.25rem 0;
+  color: #92400E;
+}
+
+.timer-countdown {
+  font-size: 1.5rem !important;
+  color: #DC2626 !important;
+  font-weight: 800 !important;
+  text-shadow: 0 2px 4px rgba(220, 38, 38, 0.2);
+}
+
+/* NFT Expired Warning */
+.nft-expired-warning {
+  text-align: center;
+  padding: 3rem 2rem;
+  background: linear-gradient(135deg, #FEE2E2 0%, #FCA5A5 100%);
+  border: 2px solid #DC2626;
+  border-radius: 1rem;
+  margin: 2rem 0;
+}
+
+.expired-icon {
+  font-size: 6rem;
+  margin-bottom: 1rem;
+  animation: sad-cat 2s ease-in-out infinite;
+}
+
+.nft-expired-warning h3 {
+  color: #DC2626;
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.nft-expired-warning p {
+  color: #92400E;
+  font-size: 1.1rem;
+  margin: 0.5rem 0;
+}
+
 /* Cat Mint Button */
 .cat-mint-button {
   background: linear-gradient(135deg, #FF69B4 0%, #FF1493 100%) !important;

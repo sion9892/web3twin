@@ -36,6 +36,8 @@ export default function Step3Result({
   const [mintError, setMintError] = useState<string | null>(null);
   const [mintingStep, setMintingStep] = useState<string>('');
   const [showGallery, setShowGallery] = useState(true);
+  const [transferTimeRemaining, setTransferTimeRemaining] = useState<number | null>(null);
+  const [newlyMintedTokenId, setNewlyMintedTokenId] = useState<number | null>(null);
 
   useEffect(() => {
     calculateMatch();
@@ -135,8 +137,33 @@ export default function Step3Result({
       setShowGallery(true);
       setMinting(false);
       setMintingStep('');
+      
+      // Start 30-second countdown for transfer window
+      setTransferTimeRemaining(30);
+      
+      // Get the newly minted token ID (in a real implementation, you'd get this from the transaction receipt)
+      // For now, we'll set it to a dummy value
+      setNewlyMintedTokenId(Date.now());
     }
   }, [isConfirmed, minting, isPending, isConfirming, refetchTokens]);
+  
+  // Countdown timer for transfer window
+  useEffect(() => {
+    if (transferTimeRemaining === null) return;
+    
+    if (transferTimeRemaining <= 0) {
+      // Time's up! Hide gallery and show warning
+      setShowGallery(false);
+      setNewlyMintedTokenId(null);
+      return;
+    }
+    
+    const timer = setTimeout(() => {
+      setTransferTimeRemaining(transferTimeRemaining - 1);
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, [transferTimeRemaining]);
 
   if (loading) {
     return (
@@ -367,20 +394,59 @@ export default function Step3Result({
           </a>
         </div>
 
-        {/* NFT Gallery */}
+        {/* NFT Gallery with Transfer Timer */}
         {isConnected && (
           <div className="nft-section">
-            <div className="section-header">
-              <h3>Your Web3Twin NFTs</h3>
-              <button 
-                onClick={() => setShowGallery(!showGallery)}
-                className="toggle-button"
-              >
-                {showGallery ? 'Hide NFTs' : 'Show NFTs'}
-              </button>
-            </div>
+            {transferTimeRemaining !== null && transferTimeRemaining > 0 && (
+              <div className="transfer-timer-warning">
+                <div className="timer-icon">⏰</div>
+                <div className="timer-content">
+                  <h3>⚠️ Transfer Window Active!</h3>
+                  <p>
+                    <strong className="timer-countdown">{transferTimeRemaining}초 남음</strong>
+                  </p>
+                  <p style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>
+                    지금 NFT를 다른 지갑으로 전송하세요! 시간이 지나면 NFT가 자동으로 삭제됩니다.
+                  </p>
+                </div>
+              </div>
+            )}
             
-            {showGallery && <NFTGallery />}
+            {transferTimeRemaining === 0 && (
+              <div className="nft-expired-warning">
+                <div className="expired-icon">😿</div>
+                <h3>Transfer 시간이 만료되었습니다</h3>
+                <p>
+                  NFT를 전송하지 않아 자동으로 삭제되었습니다.
+                </p>
+                <p style={{ fontSize: '0.9rem', marginTop: '0.5rem', color: '#666' }}>
+                  💡 다음번에는 민팅 후 30초 안에 Transfer 버튼을 눌러주세요!
+                </p>
+                <button 
+                  onClick={onFindAgain}
+                  className="primary-button"
+                  style={{ marginTop: '1rem' }}
+                >
+                  새로운 Twin Cat 찾기 🐱
+                </button>
+              </div>
+            )}
+            
+            {transferTimeRemaining !== 0 && (
+              <>
+                <div className="section-header">
+                  <h3>Your Web3Twin NFTs</h3>
+                  <button 
+                    onClick={() => setShowGallery(!showGallery)}
+                    className="toggle-button"
+                  >
+                    {showGallery ? 'Hide NFTs' : 'Show NFTs'}
+                  </button>
+                </div>
+                
+                {showGallery && <NFTGallery />}
+              </>
+            )}
           </div>
         )}
       </div>
