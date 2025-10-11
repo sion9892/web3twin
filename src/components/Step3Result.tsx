@@ -291,19 +291,20 @@ export default function Step3Result({
                   <div className="spinner" />
                   <p className="minting-step-text">
                     {mintingStep || (
-                      minting ? 'Preparing transaction...' : 
-                      isPending ? 'Waiting for wallet confirmation...' : 
-                      isConfirming ? 'Confirming transaction...' : ''
+                      isConfirmed ? '✅ NFT minted successfully!' :
+                      isConfirming ? '⏳ Confirming transaction on blockchain...' :
+                      isPending ? '💳 Waiting for wallet confirmation...' :
+                      minting ? '🔍 Preparing transaction...' : ''
                     )}
                   </p>
                   <div className="minting-progress">
                     <div className="progress-bar">
                       <div className="progress-fill" style={{
-                        width: isPending ? '40%' : isConfirming ? '80%' : isConfirmed ? '100%' : '20%'
+                        width: isConfirmed ? '100%' : isConfirming ? '80%' : isPending ? '60%' : '20%'
                       }} />
                     </div>
                     <div className="progress-steps">
-                      <span className={minting && !isPending ? 'active' : ''}>Prepare</span>
+                      <span className={minting && !isPending && !isConfirming ? 'active' : ''}>Prepare</span>
                       <span className={isPending ? 'active' : ''}>Approve</span>
                       <span className={isConfirming ? 'active' : ''}>Confirm</span>
                       <span className={isConfirmed ? 'active' : ''}>Complete</span>

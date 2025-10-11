@@ -50,6 +50,15 @@ export function useMintNFT() {
     hash,
   });
 
+  // Debug state changes
+  console.log('🔍 Minting States:', {
+    isPending,
+    isConfirming,
+    isConfirmed,
+    hash: hash ? `${hash.slice(0, 10)}...` : 'null',
+    error: error?.message || 'none'
+  });
+
   const mintNFT = async (
     user1Address: string,
     user2Address: string,
