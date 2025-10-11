@@ -1,17 +1,19 @@
 import { getDefaultConfig } from '@rainbow-me/rainbowkit';
-import { base, baseSepolia } from 'wagmi/chains';
+import { base, baseSepolia, hardhat } from 'wagmi/chains';
 
 export const config = getDefaultConfig({
   appName: 'Web3Twin',
-  projectId: 'YOUR_PROJECT_ID', // WalletConnect Project ID
+  projectId: '2f05a7cdeecdc0c5b3c7c8e8e8e8e8e8', // WalletConnect Project ID (demo)
   chains: [
-    base,
-    baseSepolia,
+    base, // 메인넷 (우선순위)
+    baseSepolia, // 테스트넷
+    hardhat, // 로컬 개발용
   ],
   ssr: true,
 });
 
 export const CONTRACT_ADDRESS = {
+  hardhat: '0x5FbDB2315678afecb367f032d93F642f64180aa3', // 로컬 Hardhat 네트워크
   base: '0x...', // 배포 후 업데이트
   baseSepolia: '0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6', // 테스트용 컨트랙트 주소 (실제로는 배포 후 업데이트 필요)
 } as const;

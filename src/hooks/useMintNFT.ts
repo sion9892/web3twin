@@ -55,23 +55,37 @@ export function useMintNFT() {
     user2Address: string,
     result: SimilarityResult
   ) => {
+    console.log('=== NFT Minting Debug ===');
+    console.log('User1 Address:', user1Address);
+    console.log('User2 Address:', user2Address);
+    console.log('Similarity Result:', result);
+    console.log('Contract Address:', CONTRACT_ADDRESS.hardhat);
+    
     // Generate token URI with metadata
     const tokenURI = generateTokenURI(result);
+    console.log('Generated Token URI:', tokenURI);
+    
+    const contractArgs = [
+      user1Address as `0x${string}`,
+      user2Address as `0x${string}`,
+      BigInt(Math.round(result.similarity * 10)), // Convert to basis points
+      result.sharedHashtags.join(', '),
+      result.sharedEmojis.join(' '),
+      tokenURI
+    ];
+    
+    console.log('Contract Args:', contractArgs);
+    console.log('Calling writeContract...');
     
     await writeContract({
-      address: CONTRACT_ADDRESS.baseSepolia, // Base Sepolia 테스트넷 사용
+      address: CONTRACT_ADDRESS.base, // Base 메인넷 사용
       abi: CONTRACT_ABI,
       functionName: 'mintTwinNFT', // 일반 민팅 사용
-      args: [
-        user1Address as `0x${string}`,
-        user2Address as `0x${string}`,
-        BigInt(Math.round(result.similarity * 10)), // Convert to basis points
-        result.sharedHashtags.join(', '),
-        result.sharedEmojis.join(' '),
-        tokenURI
-      ],
+      args: contractArgs,
       gas: BigInt(500000), // 가스 한도 설정
     });
+    
+    console.log('writeContract call completed');
   };
 
   return {

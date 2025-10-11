@@ -33,6 +33,7 @@ export default function Step3Result({
   const [loading, setLoading] = useState(true);
   const [minting, setMinting] = useState(false);
   const [mintError, setMintError] = useState<string | null>(null);
+  const [mintingStep, setMintingStep] = useState<string>('');
   const [showGallery, setShowGallery] = useState(true);
 
   useEffect(() => {
@@ -68,19 +69,31 @@ export default function Step3Result({
     console.log('Current chain ID:', chainId);
     setMinting(true);
     setMintError(null);
+    setMintingStep('🔍 Preparing transaction...');
     
     try {
-      // Check if connected to correct network (Base Sepolia)
-      if (chainId !== 84532) {
-        console.error('Wrong network! Expected Base Sepolia (84532), got:', chainId);
-        setMintError('Please connect to Base Sepolia network (Chain ID: 84532)');
+      // Check if connected to correct network (Base mainnet)
+      if (chainId !== 8453) {
+        console.error('Wrong network! Expected Base (8453), got:', chainId);
+        setMintError('Please connect to Base network (Chain ID: 8453)');
         setMinting(false);
+        setMintingStep('');
         return;
       }
+      
+      setMintingStep('📝 Generating NFT metadata...');
+      await new Promise(resolve => setTimeout(resolve, 500)); // UI 업데이트를 위한 잠시 대기
+      
+      setMintingStep('⚙️ Setting up contract parameters...');
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      setMintingStep('🔗 Connecting to blockchain...');
+      await new Promise(resolve => setTimeout(resolve, 400));
       
       // For demo purposes, we'll use the current user's address as both users
       // In a real app, you'd need the twin's wallet address
       console.log('Calling mintNFT...');
+      setMintingStep('📤 Sending transaction to blockchain...');
       
       // Add timeout for minting
       const mintPromise = mintNFT(address, address, result);
@@ -98,19 +111,26 @@ export default function Step3Result({
       const appError = handleBlockchainError(err, 'mintNFT');
       setMintError(appError.message);
       setMinting(false);
+      setMintingStep('');
     }
   };
 
-  // Handle successful minting
+  // Handle transaction states and update minting step
   useEffect(() => {
     console.log('Transaction status:', { isConfirmed, minting, isPending, isConfirming });
     
-    if (isConfirmed && !minting) {
+    if (isPending && minting) {
+      setMintingStep('💳 Waiting for wallet confirmation...');
+    } else if (isConfirming && minting) {
+      setMintingStep('⏳ Confirming transaction on blockchain...');
+    } else if (isConfirmed && minting) {
+      setMintingStep('✅ Transaction confirmed!');
       console.log('Transaction confirmed, refreshing NFT list...');
       // Transaction confirmed, refresh NFT list and show gallery
       refetchTokens();
       setShowGallery(true);
       setMinting(false);
+      setMintingStep('');
     }
   }, [isConfirmed, minting, isPending, isConfirming, refetchTokens]);
 
@@ -150,25 +170,6 @@ export default function Step3Result({
 
         <div className="twin-card">
           <div className="twin-header">
-            <div className="twin-avatars">
-              <div className="avatar-wrapper">
-                <span className="avatar-label">You</span>
-              </div>
-              <div className="twin-connector">
-                <svg className="connector-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                </svg>
-              </div>
-              <div className="avatar-wrapper">
-                <img 
-                  src={result.pfpUrl} 
-                  alt={result.displayName}
-                  className="avatar-image"
-                />
-                <span className="avatar-label">Twin</span>
-              </div>
-            </div>
-
             <div className="twin-info">
               <h3 className="twin-name">{result.displayName}</h3>
               <p className="twin-username">@{result.username}</p>
@@ -294,28 +295,43 @@ export default function Step3Result({
               {(minting || isPending || isConfirming) && (
                 <div className="minting-status">
                   <div className="spinner" />
-                  <p>
-                    {minting ? 'Preparing transaction...' : 
-                     isPending ? 'Waiting for wallet confirmation...' : 
-                     isConfirming ? 'Confirming transaction...' : ''}
+                  <p className="minting-step-text">
+                    {mintingStep || (
+                      minting ? 'Preparing transaction...' : 
+                      isPending ? 'Waiting for wallet confirmation...' : 
+                      isConfirming ? 'Confirming transaction...' : ''
+                    )}
                   </p>
+                  <div className="minting-progress">
+                    <div className="progress-bar">
+                      <div className="progress-fill" style={{
+                        width: isPending ? '40%' : isConfirming ? '80%' : isConfirmed ? '100%' : '20%'
+                      }} />
+                    </div>
+                    <div className="progress-steps">
+                      <span className={minting && !isPending ? 'active' : ''}>Prepare</span>
+                      <span className={isPending ? 'active' : ''}>Approve</span>
+                      <span className={isConfirming ? 'active' : ''}>Confirm</span>
+                      <span className={isConfirmed ? 'active' : ''}>Complete</span>
+                    </div>
+                  </div>
                 </div>
               )}
               {mintError && (
                 <div className="error-message">
                   {mintError}
-                  {mintError.includes('Base Sepolia network') && (
+                  {mintError.includes('Base network') && (
                     <div style={{ marginTop: '1rem' }}>
-                      <p>지갑에서 Base Sepolia 네트워크로 변경해주세요:</p>
+                      <p>지갑에서 Base 네트워크로 변경해주세요:</p>
                       <ul style={{ textAlign: 'left', marginTop: '0.5rem' }}>
-                        <li>Network Name: Base Sepolia</li>
-                        <li>RPC URL: https://sepolia.base.org</li>
-                        <li>Chain ID: 84532</li>
+                        <li>Network Name: Base</li>
+                        <li>RPC URL: https://mainnet.base.org</li>
+                        <li>Chain ID: 8453</li>
                         <li>Currency Symbol: ETH</li>
-                        <li>Block Explorer: https://sepolia.basescan.org</li>
+                        <li>Block Explorer: https://basescan.org</li>
                       </ul>
                       <p style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
-                        💡 Base Sepolia는 테스트넷으로 무료 ETH를 받을 수 있습니다.
+                        💡 Base는 Ethereum Layer 2로 가스비가 매우 저렴합니다 (약 $0.001).
                       </p>
                     </div>
                   )}

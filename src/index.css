@@ -1144,3 +1144,57 @@ body {
   font-weight: 600;
 }
 
+.minting-step-text {
+  font-size: 1.1rem;
+  margin-bottom: 1rem !important;
+  text-align: center;
+  color: var(--primary) !important;
+  font-weight: 700 !important;
+}
+
+.minting-progress {
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background-color: var(--gray-200);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), #a855f7);
+  border-radius: 4px;
+  transition: width 0.5s ease-in-out;
+}
+
+.progress-steps {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: var(--gray-500);
+}
+
+.progress-steps span {
+  position: relative;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.progress-steps span.active {
+  background-color: var(--primary);
+  color: white;
+  font-weight: 600;
+}
+
+.progress-steps span:not(.active) {
+  background-color: var(--gray-100);
+  color: var(--gray-400);
+}
+

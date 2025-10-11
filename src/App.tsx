@@ -95,7 +95,11 @@ function App() {
       <nav className="navbar">
         <div className="navbar-content">
           <h1 className="navbar-title">Web3Twin</h1>
-          <ConnectButton />
+          <ConnectButton 
+            showBalance={false}
+            chainStatus="icon"
+            accountStatus="address"
+          />
         </div>
       </nav>
 

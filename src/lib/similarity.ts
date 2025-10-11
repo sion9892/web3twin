@@ -5,6 +5,41 @@ export interface CastData {
   timestamp: string;
 }
 
+/**
+ * Common stop words that don't add meaningful value to similarity analysis
+ */
+const STOP_WORDS = new Set([
+  // Articles
+  'a', 'an', 'the',
+  // Pronouns
+  'i', 'you', 'he', 'she', 'it', 'we', 'they', 'me', 'him', 'her', 'us', 'them',
+  'my', 'your', 'his', 'her', 'its', 'our', 'their', 'mine', 'yours', 'hers', 'ours', 'theirs',
+  'this', 'that', 'these', 'those',
+  // Prepositions
+  'in', 'on', 'at', 'by', 'for', 'with', 'without', 'through', 'during', 'before', 'after',
+  'above', 'below', 'up', 'down', 'out', 'off', 'over', 'under', 'again', 'further',
+  'then', 'once', 'here', 'there', 'when', 'where', 'why', 'how', 'all', 'any', 'both',
+  'each', 'few', 'more', 'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only',
+  'own', 'same', 'so', 'than', 'too', 'very', 'can', 'will', 'just', 'should', 'now',
+  // Common verbs
+  'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did',
+  'will', 'would', 'could', 'should', 'may', 'might', 'must', 'shall', 'can',
+  // Common words
+  'and', 'or', 'but', 'if', 'because', 'as', 'until', 'while', 'of', 'to', 'from',
+  'about', 'into', 'through', 'during', 'before', 'after', 'above', 'below',
+  'up', 'down', 'out', 'off', 'over', 'under', 'again', 'further', 'then', 'once',
+  'here', 'there', 'when', 'where', 'why', 'how', 'all', 'any', 'both', 'each',
+  'few', 'more', 'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only',
+  'own', 'same', 'so', 'than', 'too', 'very', 's', 't', 'can', 'will', 'just',
+  'don', 'should', 'now', 'd', 'll', 'm', 'o', 're', 've', 'y', 'ain', 'aren',
+  'couldn', 'didn', 'doesn', 'hadn', 'hasn', 'haven', 'isn', 'ma', 'mightn',
+  'mustn', 'needn', 'shan', 'shouldn', 'wasn', 'weren', 'won', 'wouldn',
+  // Crypto/Web3 specific common words
+  'gm', 'gn', 'wagmi', 'ngmi', 'diamond', 'hands', 'apes', 'moon', 'lambo',
+  'hodl', 'fomo', 'fud', 'pump', 'dump', 'bull', 'bear', 'crypto', 'defi',
+  'nft', 'dao', 'web3', 'blockchain', 'ethereum', 'bitcoin', 'btc', 'eth'
+]);
+
 export interface TokenizedData {
   words: Set<string>;
   hashtags: Set<string>;
@@ -36,11 +71,75 @@ function extractEmojis(text: string): string[] {
 }
 
 /**
- * Extract hashtags from text
+ * Extract hashtags from text and filter out common/meaningless ones
  */
 function extractHashtags(text: string): string[] {
   const hashtagRegex = /#[\w]+/g;
-  return text.match(hashtagRegex) || [];
+  const hashtags = text.match(hashtagRegex) || [];
+  
+  // Filter out common/meaningless hashtags
+  const commonHashtags = new Set([
+    '#farcaster', '#web3', '#crypto', '#nft', '#defi', '#dao', '#blockchain',
+    '#ethereum', '#bitcoin', '#btc', '#eth', '#gm', '#gn', '#wagmi', '#ngmi',
+    '#moon', '#lambo', '#diamond', '#hands', '#apes', '#hodl', '#fomo', '#fud',
+    '#pump', '#dump', '#bull', '#bear', '#crypto', '#defi', '#web3', '#nft',
+    '#dao', '#blockchain', '#ethereum', '#bitcoin', '#btc', '#eth', '#gm',
+    '#gn', '#wagmi', '#ngmi', '#moon', '#lambo', '#diamond', '#hands', '#apes',
+    '#hodl', '#fomo', '#fud', '#pump', '#dump', '#bull', '#bear'
+  ]);
+  
+  return hashtags.filter(tag => {
+    const tagLower = tag.toLowerCase();
+    // Filter out common hashtags
+    if (commonHashtags.has(tagLower)) return false;
+    // Filter out very short hashtags
+    if (tag.length <= 3) return false;
+    // Filter out hashtags that are just numbers
+    if (/^#\d+$/.test(tag)) return false;
+    return true;
+  });
+}
+
+/**
+ * Check if a word should be filtered out (stop word or too short)
+ */
+function shouldFilterWord(word: string): boolean {
+  // Filter out very short words
+  if (word.length <= 2) return true;
+  
+  // Filter out stop words
+  if (STOP_WORDS.has(word.toLowerCase())) return true;
+  
+  // Filter out words that are only numbers
+  if (/^\d+$/.test(word)) return true;
+  
+  // Filter out words with too many repeated characters (like "loooool")
+  if (/(.)\1{3,}/.test(word)) return true;
+  
+  return false;
+}
+
+/**
+ * Debug function to show filtered vs kept words (for development)
+ */
+export function debugTokenization(text: string): { kept: string[], filtered: string[] } {
+  const allWords = text
+    .toLowerCase()
+    .split(/[\s.,!?;:()\[\]{}'"]+/)
+    .filter(word => word.length > 0);
+  
+  const kept: string[] = [];
+  const filtered: string[] = [];
+  
+  allWords.forEach(word => {
+    if (shouldFilterWord(word)) {
+      filtered.push(word);
+    } else {
+      kept.push(word);
+    }
+  });
+  
+  return { kept, filtered };
 }
 
 /**
@@ -59,7 +158,7 @@ function tokenizeText(text: string): string[] {
   return cleaned
     .toLowerCase()
     .split(/[\s.,!?;:()\[\]{}'"]+/)
-    .filter(word => word.length > 2); // Filter out very short words
+    .filter(word => !shouldFilterWord(word)); // Apply comprehensive filtering
 }
 
 /**
