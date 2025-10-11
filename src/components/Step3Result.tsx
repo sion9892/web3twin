@@ -1,5 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useAccount, useChainId } from 'wagmi';
 import { findBestTwin, type TokenizedData, type SimilarityResult, type CastData } from '../lib/similarity';
+import { useMintNFT } from '../hooks/useMintNFT';
+import { useUserNFTs } from '../hooks/useUserNFTs';
+import { handleBlockchainError, type Web3TwinError } from '../lib/errorHandler';
+import NFTGallery from './NFTGallery';
 import type { FollowerData } from '../lib/neynar';
 
 interface Step3ResultProps {
@@ -15,14 +20,20 @@ interface Step3ResultProps {
 }
 
 export default function Step3Result({
-  userInfo,
   userTokens,
   candidates,
   onShare,
   onFindAgain,
 }: Step3ResultProps) {
+  const { address, isConnected } = useAccount();
+  const chainId = useChainId();
+  const { mintNFT, isPending, isConfirming, isConfirmed } = useMintNFT();
+  const { refetchTokens } = useUserNFTs();
   const [result, setResult] = useState<SimilarityResult | null>(null);
   const [loading, setLoading] = useState(true);
+  const [minting, setMinting] = useState(false);
+  const [mintError, setMintError] = useState<string | null>(null);
+  const [showGallery, setShowGallery] = useState(true);
 
   useEffect(() => {
     calculateMatch();
@@ -46,6 +57,62 @@ export default function Step3Result({
     setResult(bestMatch);
     setLoading(false);
   };
+
+  const handleMintNFT = async () => {
+    if (!result || !address) {
+      console.error('Missing result or address:', { result, address });
+      return;
+    }
+    
+    console.log('Starting NFT mint...', { address, result });
+    console.log('Current chain ID:', chainId);
+    setMinting(true);
+    setMintError(null);
+    
+    try {
+      // Check if connected to correct network (Base Sepolia)
+      if (chainId !== 84532) {
+        console.error('Wrong network! Expected Base Sepolia (84532), got:', chainId);
+        setMintError('Please connect to Base Sepolia network (Chain ID: 84532)');
+        setMinting(false);
+        return;
+      }
+      
+      // For demo purposes, we'll use the current user's address as both users
+      // In a real app, you'd need the twin's wallet address
+      console.log('Calling mintNFT...');
+      
+      // Add timeout for minting
+      const mintPromise = mintNFT(address, address, result);
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Minting timeout after 30 seconds')), 30000);
+      });
+      
+      await Promise.race([mintPromise, timeoutPromise]);
+      console.log('mintNFT call completed');
+      
+      // Wait for transaction confirmation, then refresh NFT list
+      // The useWaitForTransactionReceipt hook will handle the confirmation
+    } catch (err) {
+      console.error('Error in handleMintNFT:', err);
+      const appError = handleBlockchainError(err, 'mintNFT');
+      setMintError(appError.message);
+      setMinting(false);
+    }
+  };
+
+  // Handle successful minting
+  useEffect(() => {
+    console.log('Transaction status:', { isConfirmed, minting, isPending, isConfirming });
+    
+    if (isConfirmed && !minting) {
+      console.log('Transaction confirmed, refreshing NFT list...');
+      // Transaction confirmed, refresh NFT list and show gallery
+      refetchTokens();
+      setShowGallery(true);
+      setMinting(false);
+    }
+  }, [isConfirmed, minting, isPending, isConfirming, refetchTokens]);
 
   if (loading) {
     return (
@@ -75,8 +142,6 @@ export default function Step3Result({
       </div>
     );
   }
-
-  const shareText = `I just found my Web3Twin on Farcaster! 🎭\n\n@${userInfo.username} ↔️ @${result.username}\n${result.similarity.toFixed(1)}% similarity\n\nFind yours at web3twin.vercel.app`;
 
   return (
     <div className="step-container">
@@ -210,6 +275,62 @@ export default function Step3Result({
           >
             Share as Cast
           </button>
+          
+          {isConnected && address && (
+            <>
+              <button 
+                onClick={handleMintNFT}
+                className="primary-button"
+                disabled={minting || isPending || isConfirming}
+              >
+                {minting || isPending || isConfirming 
+                  ? 'Minting NFT...' 
+                  : isConfirmed 
+                  ? 'NFT Minted! 🎉' 
+                  : 'Mint Twin NFT 🎭'
+                }
+              </button>
+              
+              {(minting || isPending || isConfirming) && (
+                <div className="minting-status">
+                  <div className="spinner" />
+                  <p>
+                    {minting ? 'Preparing transaction...' : 
+                     isPending ? 'Waiting for wallet confirmation...' : 
+                     isConfirming ? 'Confirming transaction...' : ''}
+                  </p>
+                </div>
+              )}
+              {mintError && (
+                <div className="error-message">
+                  {mintError}
+                  {mintError.includes('Base Sepolia network') && (
+                    <div style={{ marginTop: '1rem' }}>
+                      <p>지갑에서 Base Sepolia 네트워크로 변경해주세요:</p>
+                      <ul style={{ textAlign: 'left', marginTop: '0.5rem' }}>
+                        <li>Network Name: Base Sepolia</li>
+                        <li>RPC URL: https://sepolia.base.org</li>
+                        <li>Chain ID: 84532</li>
+                        <li>Currency Symbol: ETH</li>
+                        <li>Block Explorer: https://sepolia.basescan.org</li>
+                      </ul>
+                      <p style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
+                        💡 Base Sepolia는 테스트넷으로 무료 ETH를 받을 수 있습니다.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+              <div className="info-card">
+                <p>
+                  <strong>💰 Low Cost Minting!</strong> Base 네트워크에서는 가스비가 매우 저렴합니다 (약 $0.001).
+                  <br />
+                  <small>💡 Base는 Ethereum Layer 2로 가스비가 100배 이상 저렴합니다.</small>
+                </p>
+              </div>
+            </>
+          )}
+          
           <button 
             onClick={onFindAgain}
             className="secondary-button"
@@ -225,6 +346,23 @@ export default function Step3Result({
             View on Warpcast →
           </a>
         </div>
+
+        {/* NFT Gallery */}
+        {isConnected && (
+          <div className="nft-section">
+            <div className="section-header">
+              <h3>Your Web3Twin NFTs</h3>
+              <button 
+                onClick={() => setShowGallery(!showGallery)}
+                className="toggle-button"
+              >
+                {showGallery ? 'Hide NFTs' : 'Show NFTs'}
+              </button>
+            </div>
+            
+            {showGallery && <NFTGallery />}
+          </div>
+        )}
       </div>
     </div>
   );

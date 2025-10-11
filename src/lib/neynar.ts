@@ -1,6 +1,8 @@
 import { CastData } from './similarity';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+const NEYNAR_API_KEY = import.meta.env.VITE_NEYNAR_API_KEY || '';
+const USE_DIRECT_API = import.meta.env.DEV; // 개발 모드에서는 직접 호출
 
 export interface UserInfo {
   fid: number;
@@ -24,6 +26,41 @@ export interface FollowerData {
 export async function getUserByUsername(username: string): Promise<UserInfo | null> {
   try {
     const cleanUsername = username.replace('@', '');
+    
+    // 개발 환경에서는 직접 Neynar API 호출
+    if (USE_DIRECT_API && NEYNAR_API_KEY) {
+      const response = await fetch(
+        `https://api.neynar.com/v2/farcaster/user/by_username?username=${cleanUsername}`,
+        {
+          headers: {
+            'accept': 'application/json',
+            'api_key': NEYNAR_API_KEY,
+          },
+        }
+      );
+      
+      if (!response.ok) {
+        console.error('Failed to fetch user:', await response.text());
+        return null;
+      }
+      
+      const data = await response.json();
+      console.log('User API response:', data); // 디버깅용
+      
+      const user = {
+        fid: data.user?.fid || data.result?.user?.fid,
+        username: data.user?.username || data.result?.user?.username,
+        display_name: data.user?.display_name || data.result?.user?.display_name,
+        pfp_url: data.user?.pfp_url || data.result?.user?.pfp_url,
+        follower_count: data.user?.follower_count || data.result?.user?.follower_count,
+        following_count: data.user?.following_count || data.result?.user?.following_count,
+      };
+      
+      console.log('Parsed user:', user); // 디버깅용
+      return user;
+    }
+    
+    // 프로덕션에서는 프록시 사용
     const response = await fetch(`${API_BASE}/api/neynar-proxy?endpoint=user&username=${cleanUsername}`);
     
     if (!response.ok) {
@@ -44,6 +81,31 @@ export async function getUserByUsername(username: string): Promise<UserInfo | nu
  */
 export async function getFollowers(fid: number, limit: number = 100): Promise<FollowerData[]> {
   try {
+    if (USE_DIRECT_API && NEYNAR_API_KEY) {
+      const response = await fetch(
+        `https://api.neynar.com/v2/farcaster/followers?fid=${fid}&limit=${limit}`,
+        {
+          headers: {
+            'accept': 'application/json',
+            'api_key': NEYNAR_API_KEY,
+          },
+        }
+      );
+      
+      if (!response.ok) {
+        console.error('Failed to fetch followers:', await response.text());
+        return [];
+      }
+      
+      const data = await response.json();
+      return data.result?.users?.map((user: any) => ({
+        fid: user.fid,
+        username: user.username,
+        display_name: user.display_name,
+        pfp_url: user.pfp_url,
+      })) || [];
+    }
+    
     const response = await fetch(`${API_BASE}/api/neynar-proxy?endpoint=followers&fid=${fid}&limit=${limit}`);
     
     if (!response.ok) {
@@ -64,6 +126,31 @@ export async function getFollowers(fid: number, limit: number = 100): Promise<Fo
  */
 export async function getFollowing(fid: number, limit: number = 100): Promise<FollowerData[]> {
   try {
+    if (USE_DIRECT_API && NEYNAR_API_KEY) {
+      const response = await fetch(
+        `https://api.neynar.com/v2/farcaster/following?fid=${fid}&limit=${limit}`,
+        {
+          headers: {
+            'accept': 'application/json',
+            'api_key': NEYNAR_API_KEY,
+          },
+        }
+      );
+      
+      if (!response.ok) {
+        console.error('Failed to fetch following:', await response.text());
+        return [];
+      }
+      
+      const data = await response.json();
+      return data.result?.users?.map((user: any) => ({
+        fid: user.fid,
+        username: user.username,
+        display_name: user.display_name,
+        pfp_url: user.pfp_url,
+      })) || [];
+    }
+    
     const response = await fetch(`${API_BASE}/api/neynar-proxy?endpoint=following&fid=${fid}&limit=${limit}`);
     
     if (!response.ok) {
@@ -84,6 +171,32 @@ export async function getFollowing(fid: number, limit: number = 100): Promise<Fo
  */
 export async function getRecentCasts(fid: number, limit: number = 25): Promise<CastData[]> {
   try {
+    if (USE_DIRECT_API && NEYNAR_API_KEY) {
+      const response = await fetch(
+        `https://api.neynar.com/v2/farcaster/feed/user/casts?fid=${fid}&limit=${limit}`,
+        {
+          headers: {
+            'accept': 'application/json',
+            'api_key': NEYNAR_API_KEY,
+          },
+        }
+      );
+      
+      if (!response.ok) {
+        console.error('Failed to fetch casts:', await response.text());
+        return [];
+      }
+      
+      const data = await response.json();
+      console.log('Casts API response:', data); // 디버깅용
+      return data.casts?.map((cast: any) => ({
+        text: cast.text,
+        author_fid: cast.author?.fid,
+        hash: cast.hash,
+        timestamp: cast.timestamp,
+      })) || [];
+    }
+    
     const response = await fetch(`${API_BASE}/api/neynar-proxy?endpoint=casts&fid=${fid}&limit=${limit}`);
     
     if (!response.ok) {

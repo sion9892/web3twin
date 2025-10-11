@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { getUserByUsername, type UserInfo } from '../lib/neynar';
+import { validateHandle, handleApiError, type Web3TwinError } from '../lib/errorHandler';
 
 interface Step1HandleProps {
   onComplete: (userInfo: UserInfo) => void;
@@ -13,8 +14,10 @@ export default function Step1Handle({ onComplete }: Step1HandleProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!handle.trim()) {
-      setError('Please enter a Farcaster handle');
+    // Validate handle
+    const validationError = validateHandle(handle);
+    if (validationError) {
+      setError(validationError.message);
       return;
     }
 
@@ -31,8 +34,8 @@ export default function Step1Handle({ onComplete }: Step1HandleProps) {
 
       onComplete(userInfo);
     } catch (err) {
-      setError('An error occurred. Please try again.');
-      console.error('Error fetching user:', err);
+      const appError = handleApiError(err, 'getUserByUsername');
+      setError(appError.message);
     } finally {
       setLoading(false);
     }
