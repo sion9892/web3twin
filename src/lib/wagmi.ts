@@ -3,13 +3,17 @@ import { base, baseSepolia, hardhat } from 'wagmi/chains';
 
 export const config = getDefaultConfig({
   appName: 'Web3Twin',
-  projectId: '2f05a7cdeecdc0c5b3c7c8e8e8e8e8e8', // WalletConnect Project ID (demo)
+  projectId: 'demo-project-id-for-local-dev', // Simple demo ID for local development
   chains: [
     base, // 메인넷 (우선순위)
     baseSepolia, // 테스트넷
     hardhat, // 로컬 개발용
   ],
   ssr: true,
+  // Disable WalletConnect for local development to avoid errors
+  walletConnectOptions: {
+    showQrModal: false,
+  },
 });
 
 export const CONTRACT_ADDRESS = {
