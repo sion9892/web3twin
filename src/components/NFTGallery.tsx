@@ -53,7 +53,9 @@ export default function NFTGallery() {
     return (
       <div className="nft-gallery">
         <div className="gallery-placeholder">
-          <h3>Connect your wallet to view your NFTs</h3>
+          <div className="cat-placeholder">🐱</div>
+          <h3>Connect your wallet to view your Twin Cats</h3>
+          <p>Your adorable cat NFTs are waiting!</p>
         </div>
       </div>
     );
@@ -63,8 +65,8 @@ export default function NFTGallery() {
     return (
       <div className="nft-gallery">
         <div className="gallery-loading">
-          <div className="spinner" />
-          <p>Loading your NFTs...</p>
+          <div className="spinner-cat">😺</div>
+          <p>Loading your Twin Cats...</p>
         </div>
       </div>
     );
@@ -74,8 +76,9 @@ export default function NFTGallery() {
     return (
       <div className="nft-gallery">
         <div className="gallery-empty">
-          <h3>No NFTs found</h3>
-          <p>Mint your first Web3Twin NFT to get started!</p>
+          <div className="empty-cat">😿</div>
+          <h3>No Twin Cats found</h3>
+          <p>Mint your first Twin Cat NFT to start your collection! 🐱✨</p>
         </div>
       </div>
     );
@@ -84,35 +87,40 @@ export default function NFTGallery() {
   return (
     <div className="nft-gallery">
       <div className="gallery-header">
-        <h3>Your Web3Twin NFTs</h3>
+        <h3>🐱 Your Twin Cat Collection ✨</h3>
         <button onClick={() => refetchTokens()} className="refresh-button">
-          Refresh
+          🔄 Refresh
         </button>
       </div>
       
       <div className="nft-grid">
         {nfts.map((nft) => (
-          <div key={nft.tokenId} className="nft-card">
+          <div key={nft.tokenId} className="nft-card cat-card">
             <div className="nft-image">
-              <div className="nft-placeholder">
-                🎭
+              <div className="nft-placeholder cat-nft-placeholder">
+                🐱✨
               </div>
+              <div className="nft-badge">#{nft.tokenId}</div>
             </div>
             
             <div className="nft-info">
-              <h4>Web3Twin #{nft.tokenId}</h4>
+              <h4>Twin Cat #{nft.tokenId}</h4>
               <div className="nft-details">
                 <div className="detail-row">
-                  <span>Similarity:</span>
-                  <span>{nft.twinMatch.similarity}%</span>
+                  <span>😻 Purrfection:</span>
+                  <span className="similarity-badge">{nft.twinMatch.similarity}%</span>
                 </div>
                 <div className="detail-row">
-                  <span>Minted:</span>
+                  <span>📅 Adopted:</span>
                   <span>{new Date(nft.twinMatch.timestamp).toLocaleDateString()}</span>
                 </div>
                 <div className="detail-row">
-                  <span>Shared Tags:</span>
-                  <span>{nft.twinMatch.sharedHashtags}</span>
+                  <span>🏷️ Shared Tags:</span>
+                  <span className="tags-text">{nft.twinMatch.sharedHashtags}</span>
+                </div>
+                <div className="detail-row">
+                  <span>✨ Vibes:</span>
+                  <span>{nft.twinMatch.sharedEmojis}</span>
                 </div>
               </div>
               

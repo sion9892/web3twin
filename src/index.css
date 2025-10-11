@@ -915,24 +915,112 @@ body {
 }
 
 .nft-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  transform: translateY(-4px) rotate(0.5deg);
+  box-shadow: 0 12px 28px rgba(139, 92, 246, 0.3);
+}
+
+.cat-card {
+  background: linear-gradient(135deg, #FFF5F7 0%, #FFE4E8 100%);
+  border: 2px solid #FFB6C1;
 }
 
 .nft-image {
   width: 100%;
   height: 200px;
-  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  background: linear-gradient(135deg, #667eea, #764ba2);
   border-radius: 0.75rem;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 1rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.nft-image::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.2), transparent);
+}
+
+.nft-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #667eea;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .nft-placeholder {
   font-size: 4rem;
   color: white;
+  position: relative;
+  z-index: 1;
+}
+
+.cat-nft-placeholder {
+  font-size: 5rem;
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.cat-placeholder {
+  font-size: 6rem;
+  animation: bounce 2s ease-in-out infinite;
+}
+
+.spinner-cat {
+  font-size: 4rem;
+  animation: spin-cat 2s linear infinite;
+}
+
+.empty-cat {
+  font-size: 5rem;
+  animation: sad-cat 2s ease-in-out infinite;
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+@keyframes spin-cat {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes sad-cat {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
 }
 
 .nft-info h4 {
@@ -963,6 +1051,55 @@ body {
 .detail-row span:last-child {
   color: var(--gray-900);
   font-weight: 700;
+}
+
+.similarity-badge {
+  background: linear-gradient(135deg, #FF69B4, #FF1493);
+  color: white !important;
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-weight: 800;
+  box-shadow: 0 2px 8px rgba(255, 20, 147, 0.3);
+}
+
+.tags-text {
+  font-size: 0.85rem;
+  color: #667eea !important;
+  font-weight: 600;
+}
+
+/* Cat Mint Button */
+.cat-mint-button {
+  background: linear-gradient(135deg, #FF69B4 0%, #FF1493 100%) !important;
+  box-shadow: 0 4px 15px rgba(255, 20, 147, 0.4) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.cat-mint-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s;
+}
+
+.cat-mint-button:hover::before {
+  left: 100%;
+}
+
+.cat-mint-button:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 6px 20px rgba(255, 20, 147, 0.6) !important;
+}
+
+.cat-mint-button:disabled {
+  background: linear-gradient(135deg, #FFB6C1 0%, #FFC0CB 100%) !important;
+  cursor: not-allowed;
+  opacity: 0.7;
 }
 
 /* NFT Actions */

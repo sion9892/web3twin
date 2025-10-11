@@ -284,14 +284,14 @@ export default function Step3Result({
             <>
               <button 
                 onClick={handleMintNFT}
-                className="primary-button"
+                className="primary-button cat-mint-button"
                 disabled={minting || isPending || isConfirming}
               >
                 {minting || isPending || isConfirming 
-                  ? 'Minting NFT...' 
+                  ? '😺 Adopting Your Twin Cat...' 
                   : isConfirmed 
-                  ? 'NFT Minted! 🎉' 
-                  : 'Mint Twin NFT 🎭'
+                  ? '🎉 Twin Cat Adopted! 😻' 
+                  : '🐱 Adopt Your Twin Cat NFT ✨'
                 }
               </button>
               
