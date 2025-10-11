@@ -80,7 +80,7 @@ export function useMintNFT() {
       user2Address as `0x${string}`,
       BigInt(Math.round(result.similarity * 10)), // Convert to basis points
       result.sharedHashtags.join(', '),
-      result.sharedEmojis.join(' '),
+      '', // Empty string for sharedEmojis (removed feature)
       tokenURI
     ];
     

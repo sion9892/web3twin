@@ -36,7 +36,7 @@ export default function NFTGallery() {
             similarity: 85.5,
             timestamp: Date.now(),
             sharedHashtags: 'web3, crypto, nft',
-            sharedEmojis: '🎭 🚀 ✨',
+            sharedEmojis: '',
           },
           tokenURI: `https://web3twin.vercel.app/api/metadata/${tokenId}`,
         });
