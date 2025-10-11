@@ -198,7 +198,7 @@ function generateTokenURI(result: SimilarityResult, user1Username?: string): str
   
   const metadata = {
     name: `Twin Cats: @${username1} × @${username2} 🐱✨`,
-    description: `Meow! @${username1} and @${username2} are Twin Cats with ${result.similarity.toFixed(1)}% purrfect match on Farcaster! They share ${result.sharedHashtags.length} topics and ${result.sharedEmojis.length} vibes. ${result.sharedHashtags.slice(0, 3).join(' ')} ${result.sharedEmojis.slice(0, 3).join('')}`,
+    description: `Meow! @${username1} and @${username2} are Twin Cats with ${result.similarity.toFixed(1)}% purrfect match on Farcaster! They share ${result.sharedHashtags.length} topics. ${result.sharedHashtags.slice(0, 3).join(' ')}`,
     image: `data:image/svg+xml;base64,${svgBase64}`,
     attributes: [
       {
@@ -220,10 +220,6 @@ function generateTokenURI(result: SimilarityResult, user1Username?: string): str
       {
         trait_type: "Shared Topics",
         value: result.sharedHashtags.length
-      },
-      {
-        trait_type: "Shared Vibes", 
-        value: result.sharedEmojis.length
       },
       {
         trait_type: "GM Streak",

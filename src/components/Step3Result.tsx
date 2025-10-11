@@ -227,18 +227,6 @@ export default function Step3Result({
               </div>
             )}
 
-            {result.sharedEmojis.length > 0 && (
-              <div className="signal-card">
-                <h4 className="signal-title">Shared Emojis</h4>
-                <div className="signal-items">
-                  {result.sharedEmojis.map((emoji, idx) => (
-                    <span key={idx} className="signal-tag emoji">
-                      {emoji}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {result.matchingGmStreak && (
               <div className="signal-card special">

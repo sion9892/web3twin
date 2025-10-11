@@ -118,10 +118,6 @@ export default function NFTGallery() {
                   <span>🏷️ Shared Tags:</span>
                   <span className="tags-text">{nft.twinMatch.sharedHashtags}</span>
                 </div>
-                <div className="detail-row">
-                  <span>✨ Vibes:</span>
-                  <span>{nft.twinMatch.sharedEmojis}</span>
-                </div>
               </div>
               
               <div className="nft-actions">
