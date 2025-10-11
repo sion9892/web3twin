@@ -35,9 +35,8 @@ export default function Step3Result({
   const [minting, setMinting] = useState(false);
   const [mintError, setMintError] = useState<string | null>(null);
   const [mintingStep, setMintingStep] = useState<string>('');
-  const [showGallery, setShowGallery] = useState(true);
-  const [transferTimeRemaining, setTransferTimeRemaining] = useState<number | null>(null);
-  const [newlyMintedTokenId, setNewlyMintedTokenId] = useState<number | null>(null);
+  const [showGallery, setShowGallery] = useState(false);
+  const [showTransferWarning, setShowTransferWarning] = useState(false);
 
   useEffect(() => {
     calculateMatch();
@@ -130,40 +129,16 @@ export default function Step3Result({
     } else if (isConfirming && minting) {
       setMintingStep('⏳ Final Step: Confirming transaction on Base Sepolia blockchain... This may take a few seconds.');
     } else if (isConfirmed && minting) {
-      setMintingStep('✅ Success! NFT minted successfully! Refreshing your collection...');
-      console.log('Transaction confirmed, refreshing NFT list...');
-      // Transaction confirmed, refresh NFT list and show gallery
+      setMintingStep('✅ Success! NFT minted successfully!');
+      console.log('Transaction confirmed, showing transfer warning...');
+      // Transaction confirmed, show gallery temporarily for transfer only
       refetchTokens();
       setShowGallery(true);
+      setShowTransferWarning(true);
       setMinting(false);
       setMintingStep('');
-      
-      // Start 30-second countdown for transfer window
-      setTransferTimeRemaining(30);
-      
-      // Get the newly minted token ID (in a real implementation, you'd get this from the transaction receipt)
-      // For now, we'll set it to a dummy value
-      setNewlyMintedTokenId(Date.now());
     }
   }, [isConfirmed, minting, isPending, isConfirming, refetchTokens]);
-  
-  // Countdown timer for transfer window
-  useEffect(() => {
-    if (transferTimeRemaining === null) return;
-    
-    if (transferTimeRemaining <= 0) {
-      // Time's up! Hide gallery and show warning
-      setShowGallery(false);
-      setNewlyMintedTokenId(null);
-      return;
-    }
-    
-    const timer = setTimeout(() => {
-      setTransferTimeRemaining(transferTimeRemaining - 1);
-    }, 1000);
-    
-    return () => clearTimeout(timer);
-  }, [transferTimeRemaining]);
 
   if (loading) {
     return (
@@ -394,59 +369,26 @@ export default function Step3Result({
           </a>
         </div>
 
-        {/* NFT Gallery with Transfer Timer */}
-        {isConnected && (
+        {/* NFT Gallery - Only shows immediately after minting for transfer */}
+        {isConnected && showGallery && showTransferWarning && (
           <div className="nft-section">
-            {transferTimeRemaining !== null && transferTimeRemaining > 0 && (
-              <div className="transfer-timer-warning">
-                <div className="timer-icon">⏰</div>
-                <div className="timer-content">
-                  <h3>⚠️ Transfer Window Active!</h3>
-                  <p>
-                    <strong className="timer-countdown">{transferTimeRemaining}초 남음</strong>
-                  </p>
-                  <p style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>
-                    지금 NFT를 다른 지갑으로 전송하세요! 시간이 지나면 NFT가 자동으로 삭제됩니다.
-                  </p>
-                </div>
-              </div>
-            )}
-            
-            {transferTimeRemaining === 0 && (
-              <div className="nft-expired-warning">
-                <div className="expired-icon">😿</div>
-                <h3>Transfer 시간이 만료되었습니다</h3>
+            <div className="transfer-warning-once">
+              <div className="warning-icon">⚠️</div>
+              <div className="warning-content">
+                <h3>🐱 NFT 민팅 완료!</h3>
                 <p>
-                  NFT를 전송하지 않아 자동으로 삭제되었습니다.
+                  <strong>지금 바로 Transfer 하세요!</strong>
                 </p>
-                <p style={{ fontSize: '0.9rem', marginTop: '0.5rem', color: '#666' }}>
-                  💡 다음번에는 민팅 후 30초 안에 Transfer 버튼을 눌러주세요!
+                <p style={{ fontSize: '0.9rem', marginTop: '0.5rem', color: '#DC2626' }}>
+                  ⚠️ 이 페이지를 떠나거나 새로고침하면 NFT를 다시 볼 수 없습니다.
                 </p>
-                <button 
-                  onClick={onFindAgain}
-                  className="primary-button"
-                  style={{ marginTop: '1rem' }}
-                >
-                  새로운 Twin Cat 찾기 🐱
-                </button>
+                <p style={{ fontSize: '0.85rem', marginTop: '0.25rem', color: '#92400E' }}>
+                  Transfer를 하지 않으면 NFT가 지갑에 남아있지만, 앱에서는 확인할 수 없습니다.
+                </p>
               </div>
-            )}
+            </div>
             
-            {transferTimeRemaining !== 0 && (
-              <>
-                <div className="section-header">
-                  <h3>Your Web3Twin NFTs</h3>
-                  <button 
-                    onClick={() => setShowGallery(!showGallery)}
-                    className="toggle-button"
-                  >
-                    {showGallery ? 'Hide NFTs' : 'Show NFTs'}
-                  </button>
-                </div>
-                
-                {showGallery && <NFTGallery />}
-              </>
-            )}
+            <NFTGallery />
           </div>
         )}
       </div>
