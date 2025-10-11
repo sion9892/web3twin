@@ -20,6 +20,7 @@ interface Step3ResultProps {
 }
 
 export default function Step3Result({
+  userInfo,
   userTokens,
   candidates,
   onShare,
@@ -99,7 +100,7 @@ export default function Step3Result({
       setMintingStep('📤 Step 5/6: Sending transaction to smart contract...');
       
       // Add timeout for minting
-      const mintPromise = mintNFT(address, address, result);
+      const mintPromise = mintNFT(address, address, result, userInfo.username);
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => reject(new Error('Minting timeout after 30 seconds')), 30000);
       });

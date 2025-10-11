@@ -53,7 +53,8 @@ export function useMintNFT() {
   const mintNFT = async (
     user1Address: string,
     user2Address: string,
-    result: SimilarityResult
+    result: SimilarityResult,
+    user1Username?: string
   ) => {
     console.log('=== NFT Minting Debug ===');
     console.log('User1 Address:', user1Address);
@@ -62,7 +63,7 @@ export function useMintNFT() {
     console.log('Contract Address:', CONTRACT_ADDRESS.baseSepolia);
     
     // Generate token URI with metadata
-    const tokenURI = generateTokenURI(result);
+    const tokenURI = generateTokenURI(result, user1Username);
     console.log('Generated Token URI:', tokenURI);
     
     const contractArgs = [
@@ -98,9 +99,12 @@ export function useMintNFT() {
   };
 }
 
-function generateTokenURI(result: SimilarityResult): string {
+function generateTokenURI(result: SimilarityResult, user1Username?: string): string {
   // Generate cute cat SVG based on similarity
   const catColor = result.similarity > 80 ? '#FF69B4' : result.similarity > 60 ? '#FFB6C1' : '#FFC0CB';
+  const username1 = user1Username || 'You';
+  const username2 = result.username;
+  
   const catSVG = `
     <svg width="400" height="400" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
       <defs>
@@ -178,9 +182,14 @@ function generateTokenURI(result: SimilarityResult): string {
             font-family="Arial, sans-serif" font-size="16" font-weight="bold" 
             fill="#667eea" dy=".3em">${Math.round(result.similarity)}%</text>
       
+      <!-- Twin Usernames -->
+      <text x="200" y="365" text-anchor="middle" 
+            font-family="Arial, sans-serif" font-size="18" font-weight="bold" 
+            fill="white">@${username1} × @${username2}</text>
+      
       <!-- Twin Text -->
-      <text x="200" y="380" text-anchor="middle" 
-            font-family="Arial, sans-serif" font-size="24" font-weight="bold" 
+      <text x="200" y="387" text-anchor="middle" 
+            font-family="Arial, sans-serif" font-size="20" font-weight="bold" 
             fill="white">Twin Cats! 🐱✨</text>
     </svg>
   `;
@@ -188,10 +197,18 @@ function generateTokenURI(result: SimilarityResult): string {
   const svgBase64 = btoa(unescape(encodeURIComponent(catSVG)));
   
   const metadata = {
-    name: `Twin Cat #${result.username} 🐱`,
-    description: `Meow! You found your Twin Cat with ${result.similarity.toFixed(1)}% purrfect match! @${result.username} shares your vibes on Farcaster. ${result.sharedHashtags.slice(0, 3).join(' ')} ${result.sharedEmojis.slice(0, 3).join('')}`,
+    name: `Twin Cats: @${username1} × @${username2} 🐱✨`,
+    description: `Meow! @${username1} and @${username2} are Twin Cats with ${result.similarity.toFixed(1)}% purrfect match on Farcaster! They share ${result.sharedHashtags.length} topics and ${result.sharedEmojis.length} vibes. ${result.sharedHashtags.slice(0, 3).join(' ')} ${result.sharedEmojis.slice(0, 3).join('')}`,
     image: `data:image/svg+xml;base64,${svgBase64}`,
     attributes: [
+      {
+        trait_type: "Twin 1",
+        value: `@${username1}`
+      },
+      {
+        trait_type: "Twin 2",
+        value: `@${username2}`
+      },
       {
         trait_type: "Purrfection Score",
         value: result.similarity.toFixed(1) + "%"
