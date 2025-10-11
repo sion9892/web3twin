@@ -60,7 +60,7 @@ export function useUserNFTs() {
     isLoading: isLoadingTokens,
     refetch: refetchTokens
   } = useReadContract({
-    address: CONTRACT_ADDRESS.hardhat,
+    address: CONTRACT_ADDRESS.baseSepolia,
     abi: CONTRACT_ABI,
     functionName: 'getUserTokens',
     args: address ? [address] : undefined,
@@ -78,7 +78,7 @@ export function useUserNFTs() {
 
 export function useNFTDetails(tokenId: number) {
   const { data: twinMatch } = useReadContract({
-    address: CONTRACT_ADDRESS.hardhat,
+    address: CONTRACT_ADDRESS.baseSepolia,
     abi: CONTRACT_ABI,
     functionName: 'getTwinMatch',
     args: [BigInt(tokenId)],
@@ -88,7 +88,7 @@ export function useNFTDetails(tokenId: number) {
   });
 
   const { data: tokenURI } = useReadContract({
-    address: CONTRACT_ADDRESS.hardhat,
+    address: CONTRACT_ADDRESS.baseSepolia,
     abi: CONTRACT_ABI,
     functionName: 'tokenURI',
     args: [BigInt(tokenId)],

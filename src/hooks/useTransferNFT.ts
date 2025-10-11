@@ -57,7 +57,7 @@ export function useTransferNFT() {
   ) => {
     try {
       await writeContract({
-        address: CONTRACT_ADDRESS.hardhat,
+        address: CONTRACT_ADDRESS.baseSepolia,
         abi: CONTRACT_ABI,
         functionName: 'safeTransferFrom',
         args: [
