@@ -72,28 +72,31 @@ export default function Step3Result({
     setMintingStep('🔍 Preparing transaction...');
     
     try {
-      // Check if connected to correct network (Base mainnet)
-      if (chainId !== 8453) {
-        console.error('Wrong network! Expected Base (8453), got:', chainId);
-        setMintError('Please connect to Base network (Chain ID: 8453)');
+      // Check if connected to correct network (Base Sepolia testnet)
+      if (chainId !== 84532) {
+        console.error('Wrong network! Expected Base Sepolia (84532), got:', chainId);
+        setMintError('Please connect to Base Sepolia network (Chain ID: 84532)');
         setMinting(false);
         setMintingStep('');
         return;
       }
       
-      setMintingStep('📝 Generating NFT metadata...');
-      await new Promise(resolve => setTimeout(resolve, 500)); // UI 업데이트를 위한 잠시 대기
+      setMintingStep('📝 Step 1/6: Generating NFT metadata from similarity data...');
+      await new Promise(resolve => setTimeout(resolve, 800));
       
-      setMintingStep('⚙️ Setting up contract parameters...');
-      await new Promise(resolve => setTimeout(resolve, 300));
+      setMintingStep('⚙️ Step 2/6: Setting up smart contract parameters...');
+      await new Promise(resolve => setTimeout(resolve, 600));
       
-      setMintingStep('🔗 Connecting to blockchain...');
-      await new Promise(resolve => setTimeout(resolve, 400));
+      setMintingStep('🔗 Step 3/6: Connecting to Base Sepolia blockchain...');
+      await new Promise(resolve => setTimeout(resolve, 700));
+      
+      setMintingStep('📊 Step 4/6: Preparing transaction data (similarity: ' + result.similarity.toFixed(1) + '%)...');
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       // For demo purposes, we'll use the current user's address as both users
       // In a real app, you'd need the twin's wallet address
       console.log('Calling mintNFT...');
-      setMintingStep('📤 Sending transaction to blockchain...');
+      setMintingStep('📤 Step 5/6: Sending transaction to smart contract...');
       
       // Add timeout for minting
       const mintPromise = mintNFT(address, address, result);
@@ -120,11 +123,11 @@ export default function Step3Result({
     console.log('Transaction status:', { isConfirmed, minting, isPending, isConfirming });
     
     if (isPending && minting) {
-      setMintingStep('💳 Waiting for wallet confirmation...');
+      setMintingStep('💳 Step 6/6: Waiting for wallet confirmation... Please check your wallet!');
     } else if (isConfirming && minting) {
-      setMintingStep('⏳ Confirming transaction on blockchain...');
+      setMintingStep('⏳ Final Step: Confirming transaction on Base Sepolia blockchain... This may take a few seconds.');
     } else if (isConfirmed && minting) {
-      setMintingStep('✅ Transaction confirmed!');
+      setMintingStep('✅ Success! NFT minted successfully! Refreshing your collection...');
       console.log('Transaction confirmed, refreshing NFT list...');
       // Transaction confirmed, refresh NFT list and show gallery
       refetchTokens();
@@ -320,18 +323,18 @@ export default function Step3Result({
               {mintError && (
                 <div className="error-message">
                   {mintError}
-                  {mintError.includes('Base network') && (
+                  {mintError.includes('Base Sepolia network') && (
                     <div style={{ marginTop: '1rem' }}>
-                      <p>지갑에서 Base 네트워크로 변경해주세요:</p>
+                      <p>지갑에서 Base Sepolia 네트워크로 변경해주세요:</p>
                       <ul style={{ textAlign: 'left', marginTop: '0.5rem' }}>
-                        <li>Network Name: Base</li>
-                        <li>RPC URL: https://mainnet.base.org</li>
-                        <li>Chain ID: 8453</li>
+                        <li>Network Name: Base Sepolia</li>
+                        <li>RPC URL: https://sepolia.base.org</li>
+                        <li>Chain ID: 84532</li>
                         <li>Currency Symbol: ETH</li>
-                        <li>Block Explorer: https://basescan.org</li>
+                        <li>Block Explorer: https://sepolia.basescan.org</li>
                       </ul>
                       <p style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
-                        💡 Base는 Ethereum Layer 2로 가스비가 매우 저렴합니다 (약 $0.001).
+                        💡 Base Sepolia는 테스트넷으로 무료 ETH를 받을 수 있습니다.
                       </p>
                     </div>
                   )}

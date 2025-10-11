@@ -59,7 +59,7 @@ export function useMintNFT() {
     console.log('User1 Address:', user1Address);
     console.log('User2 Address:', user2Address);
     console.log('Similarity Result:', result);
-    console.log('Contract Address:', CONTRACT_ADDRESS.hardhat);
+    console.log('Contract Address:', CONTRACT_ADDRESS.baseSepolia);
     
     // Generate token URI with metadata
     const tokenURI = generateTokenURI(result);
@@ -78,7 +78,7 @@ export function useMintNFT() {
     console.log('Calling writeContract...');
     
     await writeContract({
-      address: CONTRACT_ADDRESS.base, // Base 메인넷 사용
+      address: CONTRACT_ADDRESS.baseSepolia, // Base Sepolia 테스트넷 사용
       abi: CONTRACT_ABI,
       functionName: 'mintTwinNFT', // 일반 민팅 사용
       args: contractArgs,

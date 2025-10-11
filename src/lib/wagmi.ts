@@ -15,7 +15,7 @@ export const config = getDefaultConfig({
 export const CONTRACT_ADDRESS = {
   hardhat: '0x5FbDB2315678afecb367f032d93F642f64180aa3', // 로컬 Hardhat 네트워크
   base: '0x...', // 배포 후 업데이트
-  baseSepolia: '0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6', // 테스트용 컨트랙트 주소 (실제로는 배포 후 업데이트 필요)
+  baseSepolia: '0x9405955F3061342bDaf064f338a5dc44C435c69c', // Base Sepolia 테스트넷 (실제 배포됨)
 } as const;
 
 // Base 네트워크 가스비 정보
