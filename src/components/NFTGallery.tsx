@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAccount } from 'wagmi';
-import { useUserNFTs, useNFTDetails, type UserNFT } from '../hooks/useUserNFTs';
+import { useUserNFTs, type UserNFT } from '../hooks/useUserNFTs';
 import TransferNFT from './TransferNFT';
 
 export default function NFTGallery() {

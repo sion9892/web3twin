@@ -6,7 +6,7 @@ import { RainbowKitProvider } from '@rainbow-me/rainbowkit'
 import { config } from './lib/wagmi'
 import { baseSepolia } from 'wagmi/chains'
 import { ErrorBoundary } from './components/ErrorBoundary'
-import App from './App.tsx'
+import App from './App'
 import './index.css'
 import '@rainbow-me/rainbowkit/styles.css'
 

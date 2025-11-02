@@ -3,8 +3,7 @@ import { useAccount, useChainId } from 'wagmi';
 import { findBestTwin, type TokenizedData, type SimilarityResult, type CastData } from '../lib/similarity';
 import { useMintNFT } from '../hooks/useMintNFT';
 import { useUserNFTs } from '../hooks/useUserNFTs';
-import { handleBlockchainError, type Web3TwinError } from '../lib/errorHandler';
-import NFTGallery from './NFTGallery';
+import { handleBlockchainError } from '../lib/errorHandler';
 import type { FollowerData } from '../lib/neynar';
 
 interface Step3ResultProps {
@@ -28,15 +27,13 @@ export default function Step3Result({
 }: Step3ResultProps) {
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
-  const { mintNFT, isPending, isConfirming, isConfirmed } = useMintNFT();
+  const { mintNFT, isPending, isConfirming, isConfirmed, hash, error: mintContractError } = useMintNFT();
   const { refetchTokens } = useUserNFTs();
   const [result, setResult] = useState<SimilarityResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [minting, setMinting] = useState(false);
   const [mintError, setMintError] = useState<string | null>(null);
-  const [mintingStep, setMintingStep] = useState<string>('');
-  const [showGallery, setShowGallery] = useState(false);
-  const [showTransferWarning, setShowTransferWarning] = useState(false);
+  const [showNFTModal, setShowNFTModal] = useState(false);
 
   useEffect(() => {
     calculateMatch();
@@ -64,81 +61,71 @@ export default function Step3Result({
   const handleMintNFT = async () => {
     if (!result || !address) {
       console.error('Missing result or address:', { result, address });
+      setMintError('Missing required data. Please try again.');
       return;
     }
     
-    console.log('Starting NFT mint...', { address, result });
+    console.log('🚀 Starting NFT mint...', { address, result, userInfo });
     console.log('Current chain ID:', chainId);
     setMinting(true);
     setMintError(null);
-    setMintingStep('🔍 Preparing transaction...');
     
     try {
       // Check if connected to correct network (Base Sepolia testnet)
       if (chainId !== 84532) {
-        console.error('Wrong network! Expected Base Sepolia (84532), got:', chainId);
-        setMintError('Please connect to Base Sepolia network (Chain ID: 84532)');
+        console.error('❌ Wrong network! Expected Base Sepolia (84532), got:', chainId);
+        setMintError(`Wrong network! Please switch to Base Sepolia (Chain ID: 84532). Current: ${chainId}`);
         setMinting(false);
-        setMintingStep('');
         return;
       }
       
-      setMintingStep('📝 Step 1/6: Generating NFT metadata from similarity data...');
-      await new Promise(resolve => setTimeout(resolve, 800));
+      console.log('✅ Network check passed: Base Sepolia');
       
-      setMintingStep('⚙️ Step 2/6: Setting up smart contract parameters...');
-      await new Promise(resolve => setTimeout(resolve, 600));
-      
-      setMintingStep('🔗 Step 3/6: Connecting to Base Sepolia blockchain...');
-      await new Promise(resolve => setTimeout(resolve, 700));
-      
-      setMintingStep('📊 Step 4/6: Preparing transaction data (similarity: ' + result.similarity.toFixed(1) + '%)...');
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // For demo purposes, we'll use the current user's address as both users
-      // In a real app, you'd need the twin's wallet address
-      console.log('Calling mintNFT...');
-      setMintingStep('📤 Step 5/6: Sending transaction to smart contract...');
-      
-      // Add timeout for minting
-      const mintPromise = mintNFT(address, address, result, userInfo.username);
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Minting timeout after 30 seconds')), 30000);
+      // Mint the NFT
+      console.log('📝 Calling mintNFT with params:', {
+        user1: address,
+        user2: address,
+        similarity: result.similarity,
+        hashtags: result.sharedHashtags,
+        username: userInfo.username
       });
       
-      await Promise.race([mintPromise, timeoutPromise]);
-      console.log('mintNFT call completed');
+      await mintNFT(address, address, result, userInfo.username);
+      console.log('✅ mintNFT call completed successfully');
       
-      // Wait for transaction confirmation, then refresh NFT list
-      // The useWaitForTransactionReceipt hook will handle the confirmation
-    } catch (err) {
-      console.error('Error in handleMintNFT:', err);
+    } catch (err: any) {
+      console.error('❌ Error in handleMintNFT:', err);
+      console.error('Error type:', typeof err);
+      console.error('Error message:', err?.message);
+      console.error('Error code:', err?.code);
+      console.error('Full error:', JSON.stringify(err, null, 2));
+      
       const appError = handleBlockchainError(err, 'mintNFT');
-      setMintError(appError.message);
+      setMintError(`${appError.message}\n\nDetails: ${err?.message || 'Unknown error'}`);
       setMinting(false);
-      setMintingStep('');
     }
   };
 
-  // Handle transaction states and update minting step
+  // Handle transaction confirmation
   useEffect(() => {
     console.log('Transaction status:', { isConfirmed, minting, isPending, isConfirming });
     
-    if (isPending && minting) {
-      setMintingStep('💳 Step 6/6: Waiting for wallet confirmation... Please check your wallet!');
-    } else if (isConfirming && minting) {
-      setMintingStep('⏳ Final Step: Confirming transaction on Base Sepolia blockchain... This may take a few seconds.');
-    } else if (isConfirmed && minting) {
-      setMintingStep('✅ Success! NFT minted successfully!');
-      console.log('Transaction confirmed, showing transfer warning...');
-      // Transaction confirmed, show gallery temporarily for transfer only
+    if (isConfirmed && minting) {
+      console.log('✅ Transaction confirmed!');
       refetchTokens();
-      setShowGallery(true);
-      setShowTransferWarning(true);
+      setShowNFTModal(true);
       setMinting(false);
-      setMintingStep('');
     }
   }, [isConfirmed, minting, isPending, isConfirming, refetchTokens]);
+
+  // Handle contract errors
+  useEffect(() => {
+    if (mintContractError && minting) {
+      console.error('❌ Contract error detected:', mintContractError);
+      setMintError(`Transaction failed: ${mintContractError.message || 'Unknown error'}`);
+      setMinting(false);
+    }
+  }, [mintContractError, minting]);
 
   if (loading) {
     return (
@@ -278,47 +265,35 @@ export default function Step3Result({
                 className="primary-button cat-mint-button"
                 disabled={minting || isPending || isConfirming}
               >
-                {minting || isPending || isConfirming 
-                  ? '😺 Adopting Your Twin Cat...' 
+                {isPending 
+                  ? '💳 Check Your Wallet...' 
+                  : isConfirming 
+                  ? '⏳ Confirming...' 
                   : isConfirmed 
                   ? '🎉 Twin Cat Adopted! 😻' 
                   : '🐱 Adopt Your Twin Cat NFT ✨'
                 }
               </button>
               
-              {(minting || isPending || isConfirming) && (
+              {(isPending || isConfirming) && (
                 <div className="minting-status">
                   <div className="spinner" />
                   <p className="minting-step-text">
-                    {mintingStep || (
-                      isConfirmed ? '✅ NFT minted successfully!' :
-                      isConfirming ? '⏳ Confirming transaction on blockchain...' :
-                      isPending ? '💳 Waiting for wallet confirmation...' :
-                      minting ? '🔍 Preparing transaction...' : ''
-                    )}
+                    {isPending && '💳 Waiting for wallet confirmation...'}
+                    {isConfirming && '⏳ Confirming transaction on blockchain...'}
                   </p>
-                  <div className="minting-progress">
-                    <div className="progress-bar">
-                      <div className="progress-fill" style={{
-                        width: isConfirmed ? '100%' : isConfirming ? '80%' : isPending ? '60%' : '20%'
-                      }} />
-                    </div>
-                    <div className="progress-steps">
-                      <span className={minting && !isPending && !isConfirming ? 'active' : ''}>Prepare</span>
-                      <span className={isPending ? 'active' : ''}>Approve</span>
-                      <span className={isConfirming ? 'active' : ''}>Confirm</span>
-                      <span className={isConfirmed ? 'active' : ''}>Complete</span>
-                    </div>
-                  </div>
                 </div>
               )}
               {mintError && (
-                <div className="error-message">
-                  {mintError}
-                  {mintError.includes('Base Sepolia network') && (
-                    <div style={{ marginTop: '1rem' }}>
-                      <p>지갑에서 Base Sepolia 네트워크로 변경해주세요:</p>
-                      <ul style={{ textAlign: 'left', marginTop: '0.5rem' }}>
+                <div className="error-message" style={{ whiteSpace: 'pre-wrap', textAlign: 'left' }}>
+                  <strong>❌ Error:</strong>
+                  <div style={{ marginTop: '0.5rem', padding: '0.75rem', background: '#fee', borderRadius: '4px', fontSize: '0.9rem' }}>
+                    {mintError}
+                  </div>
+                  {mintError.includes('Base Sepolia') && (
+                    <div style={{ marginTop: '1rem', background: '#fef3c7', padding: '1rem', borderRadius: '8px' }}>
+                      <p><strong>🔧 지갑에서 Base Sepolia 네트워크로 변경해주세요:</strong></p>
+                      <ul style={{ textAlign: 'left', marginTop: '0.5rem', marginLeft: '1.5rem' }}>
                         <li>Network Name: Base Sepolia</li>
                         <li>RPC URL: https://sepolia.base.org</li>
                         <li>Chain ID: 84532</li>
@@ -327,6 +302,17 @@ export default function Step3Result({
                       </ul>
                       <p style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
                         💡 Base Sepolia는 테스트넷으로 무료 ETH를 받을 수 있습니다.
+                      </p>
+                    </div>
+                  )}
+                  {mintError.includes('insufficient funds') && (
+                    <div style={{ marginTop: '1rem', background: '#dbeafe', padding: '1rem', borderRadius: '8px' }}>
+                      <p><strong>💰 가스비 부족:</strong></p>
+                      <p style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
+                        지갑에 Base Sepolia ETH가 필요합니다. 
+                        <a href="https://www.coinbase.com/faucets/base-ethereum-goerli-faucet" target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', textDecoration: 'underline', marginLeft: '0.25rem' }}>
+                          Faucet에서 받기 →
+                        </a>
                       </p>
                     </div>
                   )}
@@ -358,28 +344,136 @@ export default function Step3Result({
           </a>
         </div>
 
-        {/* NFT Gallery - Only shows immediately after minting for transfer */}
-        {isConnected && showGallery && showTransferWarning && (
-          <div className="nft-section">
-            <div className="transfer-warning-once">
-              <div className="warning-icon">⚠️</div>
-              <div className="warning-content">
-                <h3>🐱 NFT 민팅 완료!</h3>
-                <p>
-                  <strong>지금 바로 Transfer 하세요!</strong>
-                </p>
-                <p style={{ fontSize: '0.9rem', marginTop: '0.5rem', color: '#DC2626' }}>
-                  ⚠️ 이 페이지를 떠나거나 새로고침하면 NFT를 다시 볼 수 없습니다.
-                </p>
-                <p style={{ fontSize: '0.85rem', marginTop: '0.25rem', color: '#92400E' }}>
-                  Transfer를 하지 않으면 NFT가 지갑에 남아있지만, 앱에서는 확인할 수 없습니다.
-                </p>
+        {/* NFT Success Modal */}
+        {showNFTModal && (
+          <div className="modal-overlay" onClick={() => setShowNFTModal(false)}>
+            <div className="modal-content nft-modal" onClick={(e) => e.stopPropagation()}>
+              <button 
+                className="modal-close"
+                onClick={() => setShowNFTModal(false)}
+              >
+                ✕
+              </button>
+              
+              <h2 style={{ marginBottom: '1.5rem', fontSize: '1.8rem' }}>
+                🎉 Twin Cat NFT Minted! 😻
+              </h2>
+              
+              <div className="nft-preview">
+                <div style={{ 
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  padding: '2rem',
+                  borderRadius: '12px',
+                  marginBottom: '1.5rem'
+                }}>
+                  <div style={{ 
+                    fontSize: '4rem',
+                    textAlign: 'center',
+                    marginBottom: '1rem'
+                  }}>
+                    🐱✨
+                  </div>
+                  
+                  {/* Twin Names with styled separator */}
+                  <div style={{ 
+                    textAlign: 'center',
+                    marginBottom: '1rem'
+                  }}>
+                    <div style={{
+                      color: '#FFD700',
+                      fontSize: '1.3rem',
+                      fontWeight: 'bold',
+                      textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                      marginBottom: '0.5rem'
+                    }}>
+                      @{userInfo.username}
+                    </div>
+                    <div style={{
+                      color: 'white',
+                      fontSize: '1.8rem',
+                      fontWeight: 'bold',
+                      margin: '0.25rem 0'
+                    }}>
+                      ×
+                    </div>
+                    <div style={{
+                      color: '#FF69B4',
+                      fontSize: '1.3rem',
+                      fontWeight: 'bold',
+                      textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                      marginTop: '0.5rem'
+                    }}>
+                      @{result.username}
+                    </div>
+                  </div>
+                  
+                  <div style={{ 
+                    color: 'white',
+                    textAlign: 'center',
+                    fontSize: '2rem',
+                    fontWeight: 'bold',
+                    marginTop: '1rem',
+                    textShadow: '0 2px 8px rgba(0,0,0,0.4)'
+                  }}>
+                    {result.similarity.toFixed(1)}% Match
+                  </div>
+                </div>
+                
+                <div style={{ marginBottom: '1rem' }}>
+                  <p style={{ marginBottom: '0.5rem', color: '#666' }}>
+                    <strong>Transaction Hash:</strong>
+                  </p>
+                  <a
+                    href={`https://sepolia.basescan.org/tx/${hash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ 
+                      fontSize: '0.9rem',
+                      wordBreak: 'break-all',
+                      color: '#8b5cf6',
+                      textDecoration: 'underline'
+                    }}
+                  >
+                    {hash}
+                  </a>
+                </div>
+                
+                <div style={{ 
+                  background: '#f3f4f6',
+                  padding: '1rem',
+                  borderRadius: '8px',
+                  marginBottom: '1rem'
+                }}>
+                  <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '0.5rem' }}>
+                    ✅ Your Twin Cat NFT has been minted on Base Sepolia!
+                  </p>
+                  <p style={{ fontSize: '0.85rem', color: '#999' }}>
+                    You can now transfer it or view it on blockchain explorers.
+                  </p>
+                </div>
+                
+                <div style={{ display: 'flex', gap: '1rem', flexDirection: 'column' }}>
+                  <a
+                    href={`https://sepolia.basescan.org/tx/${hash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="primary-button"
+                  >
+                    🔍 View on Basescan
+                  </a>
+                  
+                  <button 
+                    onClick={() => setShowNFTModal(false)}
+                    className="primary-button"
+                  >
+                    Close
+                  </button>
+                </div>
               </div>
             </div>
-            
-            <NFTGallery />
           </div>
         )}
+
       </div>
     </div>
   );

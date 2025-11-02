@@ -1,7 +1,7 @@
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { CONTRACT_ADDRESS } from '../lib/wagmi';
 
-// ABI for NFT transfer
+// ABI for NFT transfer (ERC721 standard)
 const CONTRACT_ABI = [
   {
     "inputs": [
@@ -16,6 +16,7 @@ const CONTRACT_ABI = [
   },
   {
     "inputs": [
+      {"name": "from", "type": "address"},
       {"name": "to", "type": "address"},
       {"name": "tokenId", "type": "uint256"}
     ],
@@ -55,19 +56,36 @@ export function useTransferNFT() {
     toAddress: string,
     tokenId: number
   ) => {
+    console.log('🔄 Starting NFT Transfer...');
+    console.log('From:', fromAddress);
+    console.log('To:', toAddress);
+    console.log('Token ID:', tokenId);
+    console.log('Contract:', CONTRACT_ADDRESS.baseSepolia);
+    
     try {
+      const args = [
+        fromAddress as `0x${string}`,
+        toAddress as `0x${string}`,
+        BigInt(tokenId)
+      ];
+      
+      console.log('Transfer args:', args);
+      
       await writeContract({
         address: CONTRACT_ADDRESS.baseSepolia,
         abi: CONTRACT_ABI,
         functionName: 'safeTransferFrom',
-        args: [
-          fromAddress as `0x${string}`,
-          toAddress as `0x${string}`,
-          BigInt(tokenId)
-        ],
+        args: args,
       });
-    } catch (err) {
-      console.error('Error transferring NFT:', err);
+      
+      console.log('✅ Transfer transaction sent successfully');
+    } catch (err: any) {
+      console.error('❌ Error transferring NFT:', err);
+      console.error('Error details:', {
+        message: err?.message,
+        code: err?.code,
+        data: err?.data,
+      });
       throw err;
     }
   };

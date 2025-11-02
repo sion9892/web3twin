@@ -1,5 +1,4 @@
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { parseEther } from 'viem';
 import { CONTRACT_ADDRESS } from '../lib/wagmi';
 import { type SimilarityResult } from '../lib/similarity';
 
@@ -15,20 +14,6 @@ const CONTRACT_ABI = [
       {"name": "_tokenURI", "type": "string"}
     ],
     "name": "mintTwinNFT",
-    "outputs": [{"name": "", "type": "uint256"}],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {"name": "_user1", "type": "address"},
-      {"name": "_user2", "type": "address"},
-      {"name": "_similarity", "type": "uint256"},
-      {"name": "_sharedHashtags", "type": "string"},
-      {"name": "_sharedEmojis", "type": "string"},
-      {"name": "_tokenURI", "type": "string"}
-    ],
-    "name": "mintTwinNFTGasless",
     "outputs": [{"name": "", "type": "uint256"}],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -78,7 +63,7 @@ export function useMintNFT() {
     const contractArgs = [
       user1Address as `0x${string}`,
       user2Address as `0x${string}`,
-      BigInt(Math.round(result.similarity * 10)), // Convert to basis points
+      BigInt(Math.round(result.similarity)), // Similarity as percentage (0-100)
       result.sharedHashtags.join(', '),
       '', // Empty string for sharedEmojis (removed feature)
       tokenURI
@@ -87,15 +72,37 @@ export function useMintNFT() {
     console.log('Contract Args:', contractArgs);
     console.log('Calling writeContract...');
     
-    await writeContract({
-      address: CONTRACT_ADDRESS.baseSepolia, // Base Sepolia 테스트넷 사용
-      abi: CONTRACT_ABI,
-      functionName: 'mintTwinNFT', // 일반 민팅 사용
-      args: contractArgs,
-      gas: BigInt(500000), // 가스 한도 설정
-    });
-    
-    console.log('writeContract call completed');
+    try {
+      console.log('📤 Sending transaction to contract...');
+      console.log('Contract Address:', CONTRACT_ADDRESS.baseSepolia);
+      console.log('Function:', 'mintTwinNFT');
+      console.log('Args:', {
+        user1: contractArgs[0],
+        user2: contractArgs[1],
+        similarity: contractArgs[2].toString(),
+        hashtags: contractArgs[3],
+        emojis: contractArgs[4],
+        tokenURI: contractArgs[5].substring(0, 100) + '...'
+      });
+      
+      const tx = await writeContract({
+        address: CONTRACT_ADDRESS.baseSepolia,
+        abi: CONTRACT_ABI,
+        functionName: 'mintTwinNFT',
+        args: contractArgs,
+      });
+      
+      console.log('✅ writeContract call completed successfully');
+      console.log('Transaction result:', tx);
+    } catch (contractError: any) {
+      console.error('❌ writeContract failed:', contractError);
+      console.error('Error details:', {
+        message: contractError?.message,
+        code: contractError?.code,
+        data: contractError?.data,
+      });
+      throw contractError;
+    }
   };
 
   return {
@@ -113,6 +120,8 @@ function generateTokenURI(result: SimilarityResult, user1Username?: string): str
   const catColor = result.similarity > 80 ? '#FF69B4' : result.similarity > 60 ? '#FFB6C1' : '#FFC0CB';
   const username1 = user1Username || 'You';
   const username2 = result.username;
+  
+  console.log('🎨 Generating NFT with usernames:', { username1, username2 });
   
   const catSVG = `
     <svg width="400" height="400" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
@@ -191,23 +200,29 @@ function generateTokenURI(result: SimilarityResult, user1Username?: string): str
             font-family="Arial, sans-serif" font-size="16" font-weight="bold" 
             fill="#667eea" dy=".3em">${Math.round(result.similarity)}%</text>
       
-      <!-- Twin Usernames -->
-      <text x="200" y="365" text-anchor="middle" 
-            font-family="Arial, sans-serif" font-size="18" font-weight="bold" 
-            fill="white">@${username1} × @${username2}</text>
+      <!-- Username Background Box -->
+      <rect x="20" y="345" width="360" height="50" fill="rgba(0, 0, 0, 0.6)" rx="10"/>
       
-      <!-- Twin Text -->
-      <text x="200" y="387" text-anchor="middle" 
-            font-family="Arial, sans-serif" font-size="20" font-weight="bold" 
-            fill="white">Twin Cats! 🐱✨</text>
+      <!-- Twin Usernames - Large and Clear -->
+      <text x="200" y="365" text-anchor="middle" 
+            font-family="Arial, sans-serif" font-size="14" font-weight="600" 
+            fill="#FFD700" letter-spacing="1">@${username1}</text>
+      
+      <text x="200" y="378" text-anchor="middle" 
+            font-family="Arial, sans-serif" font-size="18" font-weight="bold" 
+            fill="white">×</text>
+      
+      <text x="200" y="391" text-anchor="middle" 
+            font-family="Arial, sans-serif" font-size="14" font-weight="600" 
+            fill="#FF69B4" letter-spacing="1">@${username2}</text>
     </svg>
   `;
   
   const svgBase64 = btoa(unescape(encodeURIComponent(catSVG)));
   
   const metadata = {
-    name: `Twin Cats: @${username1} × @${username2} 🐱✨`,
-    description: `Meow! @${username1} and @${username2} are Twin Cats with ${result.similarity.toFixed(1)}% purrfect match on Farcaster! They share ${result.sharedHashtags.length} topics. ${result.sharedHashtags.slice(0, 3).join(' ')}`,
+    name: `Twin Cats: @${username1} & @${username2} 🐱✨`,
+    description: `🎭 Twin Match Found! @${username1} and @${username2} are Twin Cats with ${result.similarity.toFixed(1)}% purrfect compatibility on Farcaster! They share ${result.sharedHashtags.length} common interests${result.sharedHashtags.length > 0 ? ': ' + result.sharedHashtags.slice(0, 3).join(', ') : ''}. Meow! 😻`,
     image: `data:image/svg+xml;base64,${svgBase64}`,
     attributes: [
       {

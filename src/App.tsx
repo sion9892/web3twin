@@ -172,14 +172,6 @@ function App() {
                       </span>
                     </div>
                   )}
-                  {state.result.sharedEmojis.length > 0 && (
-                    <div className="summary-row">
-                      <span className="summary-label">Shared Emojis:</span>
-                      <span className="summary-value">
-                        {state.result.sharedEmojis.join(' ')}
-                      </span>
-                    </div>
-                  )}
                 </div>
 
                 <div className="share-actions">

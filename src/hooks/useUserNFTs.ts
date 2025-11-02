@@ -76,29 +76,3 @@ export function useUserNFTs() {
   };
 }
 
-export function useNFTDetails(tokenId: number) {
-  const { data: twinMatch } = useReadContract({
-    address: CONTRACT_ADDRESS.baseSepolia,
-    abi: CONTRACT_ABI,
-    functionName: 'getTwinMatch',
-    args: [BigInt(tokenId)],
-    query: {
-      enabled: tokenId > 0,
-    },
-  });
-
-  const { data: tokenURI } = useReadContract({
-    address: CONTRACT_ADDRESS.baseSepolia,
-    abi: CONTRACT_ABI,
-    functionName: 'tokenURI',
-    args: [BigInt(tokenId)],
-    query: {
-      enabled: tokenId > 0,
-    },
-  });
-
-  return {
-    twinMatch,
-    tokenURI,
-  };
-}
