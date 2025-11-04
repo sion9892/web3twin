@@ -106,15 +106,44 @@ vercel
 ```
 
 3. Set environment variables in Vercel dashboard:
-   - `NEYNAR_API_KEY`: Your Neynar API key
-   - `VITE_API_BASE_URL`: Your production URL (e.g., `https://web3twin.vercel.app`)
+   - Go to **Settings > Environment Variables** in your Vercel project
+   - Add the following variables for **Production** environment:
+   
+   **Required (Client-side - VITE_ prefix):**
+   - `VITE_NEYNAR_API_KEY`: Your Neynar API key
+   - `VITE_API_BASE_URL`: **Leave empty** or set to `https://your-app.vercel.app` (empty = use relative paths)
+   - `VITE_COINBASE_API_KEY`: Your Coinbase API key
+   - `VITE_WALLETCONNECT_PROJECT_ID`: Your WalletConnect project ID (32 chars)
+   - `VITE_BASE_RPC_URL`: `https://mainnet.base.org`
+   
+   **Optional (Server-side only - no VITE_ prefix):**
+   - `PRIVATE_KEY`: Your private key (for contract deployment, server-side only)
+   - `PINATA_API_KEY`: Your Pinata API key (server-side only)
+   - `PINATA_SECRET_KEY`: Your Pinata secret key (server-side only)
+   - `PINATA_GATEWAY`: `https://gateway.pinata.cloud/ipfs/` (server-side only)
+   
+   ⚠️ **Important**: `VITE_API_BASE_URL` should be **empty** in production to use relative paths and avoid localhost errors.
+   
+   📖 **Detailed guide**: See [VERCEL_ENV_SETUP.md](./VERCEL_ENV_SETUP.md) for complete setup instructions.
 
-4. The app will be available at your Vercel URL!
+4. Redeploy your project after setting environment variables.
+
+5. The app will be available at your Vercel URL!
 
 ### Environment Variables
 
-- `NEYNAR_API_KEY` (required): Your Neynar API key for Farcaster data
-- `VITE_API_BASE_URL` (optional): Base URL for API calls, defaults to current domain
+See [VERCEL_ENV_SETUP.md](./VERCEL_ENV_SETUP.md) for complete environment variable setup guide.
+
+**Required for Production:**
+- `VITE_NEYNAR_API_KEY` (required): Your Neynar API key for Farcaster data
+- `VITE_API_BASE_URL` (optional): Base URL for API calls. **Leave empty** in production to use relative paths
+- `VITE_COINBASE_API_KEY`: Your Coinbase API key
+- `VITE_WALLETCONNECT_PROJECT_ID`: Your WalletConnect project ID (32 characters)
+- `VITE_BASE_RPC_URL`: Base network RPC URL (default: `https://mainnet.base.org`)
+
+**Server-side only (no VITE_ prefix):**
+- `PRIVATE_KEY`: Blockchain private key (server-side only)
+- `PINATA_API_KEY`, `PINATA_SECRET_KEY`, `PINATA_GATEWAY`: Pinata IPFS configuration (server-side only)
 
 ## How It Works
 
