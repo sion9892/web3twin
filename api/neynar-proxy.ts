@@ -86,7 +86,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
         params.append('fid', queryParams.fid);
         params.append('limit', (queryParams.limit as string) || '25');
-        neynarUrl = `${NEYNAR_BASE_URL}/casts?${params}`;
+        // 무료 플랜에서는 /feed/user/casts 사용 (402 에러 방지)
+        neynarUrl = `${NEYNAR_BASE_URL}/feed/user/casts?${params}`;
         break;
       }
 
@@ -116,6 +117,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(429).json({
           error: 'API rate limit exceeded. Please try again in a few moments.',
           code: 'RATE_LIMIT_EXCEEDED',
+        });
+      }
+      
+      // Payment Required 에러 처리 (무료 플랜 제한)
+      if (response.status === 402) {
+        return res.status(402).json({
+          error: 'This feature requires a paid Neynar API plan. Please upgrade at https://neynar.com/#pricing',
+          code: 'PAYMENT_REQUIRED',
+          upgradeUrl: 'https://neynar.com/#pricing',
         });
       }
       
@@ -197,13 +207,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       case 'casts': {
+        // /feed/user/casts 응답 구조: data.result.casts 또는 data.casts
+        const castsData = data.result?.casts || data.casts || [];
+        
         return res.status(200).json({
-          casts: data.result?.casts?.map((cast: any) => ({
+          casts: castsData.map((cast: any) => ({
             text: cast.text,
-            author_fid: cast.author?.fid,
+            author_fid: cast.author?.fid || cast.author_fid,
             hash: cast.hash,
             timestamp: cast.timestamp,
-          })) || [],
+          })),
         });
       }
 

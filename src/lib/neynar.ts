@@ -325,12 +325,30 @@ export async function getRecentCasts(fid: number, limit: number = 25): Promise<C
     const response = await fetch(proxyUrl);
     
     if (!response.ok) {
-      const errorText = await response.text();
+      let errorText = '';
+      try {
+        errorText = await response.text();
+      } catch (e) {
+        errorText = 'Unknown error';
+      }
       console.error('Failed to fetch casts:', response.status, errorText);
+      
+      if (response.status === 402) {
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { error: errorText };
+        }
+        console.error('⚠️ Payment Required:', errorData.error);
+        throw new Error('This feature requires a paid Neynar API plan. Please upgrade your API key at https://neynar.com/#pricing');
+      }
+      
       if (response.status === 429) {
         console.error('⚠️ Rate limit exceeded! Please wait a moment and try again.');
         throw new Error('API rate limit exceeded. Please try again in a few moments.');
       }
+      
       return [];
     }
     
