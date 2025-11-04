@@ -149,14 +149,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Transform response based on endpoint
     switch (endpoint) {
       case 'user': {
+        // Handle different response structures (data.user or data.result.user)
+        const userData = data.user || data.result?.user;
+        if (!userData) {
+          console.error('No user data in response:', JSON.stringify(data, null, 2));
+          return res.status(404).json({ error: 'User not found' });
+        }
+        
         return res.status(200).json({
           user: {
-            fid: data.result?.user?.fid,
-            username: data.result?.user?.username,
-            display_name: data.result?.user?.display_name,
-            pfp_url: data.result?.user?.pfp_url,
-            follower_count: data.result?.user?.follower_count,
-            following_count: data.result?.user?.following_count,
+            fid: userData.fid,
+            username: userData.username,
+            display_name: userData.display_name,
+            pfp_url: userData.pfp_url,
+            follower_count: userData.follower_count,
+            following_count: userData.following_count,
           },
         });
       }
