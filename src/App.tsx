@@ -137,7 +137,6 @@ function App() {
             userTokens={state.userTokens}
             candidates={state.candidates}
             onShare={handleShare}
-            onFindAgain={handleReset}
           />
         )}
 

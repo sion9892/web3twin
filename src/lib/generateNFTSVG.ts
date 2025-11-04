@@ -1,4 +1,3 @@
-import { type SimilarityResult } from './similarity';
 
 export interface NFTData {
   user1Username: string;
