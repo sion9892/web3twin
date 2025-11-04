@@ -47,7 +47,7 @@ export default function Step1Handle({ onComplete }: Step1HandleProps) {
         <h2 className="step-title">Find Your Web3 Twin</h2>
         
         <p className="step-description">
-          Enter your Farcaster handle to analyze your recent casts and find users with a similar vibe.
+          Enter your Farcaster handle to analyze your recent casts and find your twin with a similar vibe.
         </p>
 
         <form onSubmit={handleSubmit} className="input-form">
@@ -77,15 +77,6 @@ export default function Step1Handle({ onComplete }: Step1HandleProps) {
             {loading ? 'Analyzing...' : 'Start Analysis'}
           </button>
         </form>
-
-        <div className="info-card">
-          <svg className="info-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <p>
-            We'll analyze your recent casts and compare them with your followers and following to find your perfect twin match!
-          </p>
-        </div>
       </div>
     </div>
   );
