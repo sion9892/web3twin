@@ -5,8 +5,6 @@ import { CONTRACT_ADDRESS } from '../lib/wagmi';
 interface NFTSuccessModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onTransferClick: () => void;
-  hash: string | undefined;
   mintedTokenId: number | null;
   address: string | undefined;
   result: SimilarityResult | null;
@@ -16,8 +14,6 @@ interface NFTSuccessModalProps {
 export default function NFTSuccessModal({
   isOpen,
   onClose,
-  onTransferClick,
-  hash,
   mintedTokenId,
   address,
   result,
@@ -62,27 +58,6 @@ export default function NFTSuccessModal({
         )}
         
         <div className="nft-preview">
-          <div style={{ marginBottom: '1rem' }}>
-            <p style={{ marginBottom: '0.5rem', color: '#666' }}>
-              <strong>Transaction Hash:</strong>
-            </p>
-            {hash && (
-              <a
-                href={`https://basescan.org/tx/${hash}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ 
-                  fontSize: '0.9rem',
-                  wordBreak: 'break-all',
-                  color: '#8b5cf6',
-                  textDecoration: 'underline'
-                }}
-              >
-                {hash}
-              </a>
-            )}
-          </div>
-          
           <div style={{ 
             background: '#f3f4f6',
             padding: '1rem',
@@ -93,7 +68,7 @@ export default function NFTSuccessModal({
               ✅ Your Starry Night NFT has been minted on Base!
             </p>
             <p style={{ fontSize: '0.85rem', color: '#999', marginBottom: '0.5rem' }}>
-              You can now transfer it or view it on blockchain explorers.
+              You can now view it on blockchain explorers.
             </p>
             <p style={{ fontSize: '0.8rem', color: '#999' }}>
               💡 <strong>Note:</strong> If the NFT doesn't appear in Base App, it may take a few minutes for indexing. 
@@ -122,31 +97,7 @@ export default function NFTSuccessModal({
                 >
                   📱 View NFT on Basescan
                 </a>
-                <button
-                  onClick={() => {
-                    onClose();
-                    setTimeout(() => {
-                      onTransferClick();
-                    }, 100);
-                  }}
-                  className="primary-button"
-                  style={{ backgroundColor: '#8b5cf6' }}
-                >
-                  Transfer the NFT to my wallet
-                </button>
               </>
-            )}
-            
-            {hash && (
-              <a
-                href={`https://basescan.org/tx/${hash}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="primary-button"
-                style={{ backgroundColor: '#6366f1' }}
-              >
-                🔍 View Transaction on Basescan
-              </a>
             )}
             
             <button 

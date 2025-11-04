@@ -94,39 +94,15 @@ export function useMintNFT() {
     console.log('Similarity Result:', result);
     console.log('Contract Address:', CONTRACT_ADDRESS.base);
     
-    // Generate SVG and metadata
+    // Generate SVG and metadata (현재는 사용하지 않지만 나중을 위해 유지)
     console.log('📤 Generating NFT metadata...');
-    const { svg, metadata } = generateNFTData(result, user1Username, user1PfpUrl);
+    generateNFTData(result, user1Username, user1PfpUrl); // 호출만 하고 결과는 사용하지 않음
     
-    // Upload to IPFS
-    console.log('📤 Uploading to IPFS...');
-    let response: Response;
-    try {
-      response = await fetch('/api/upload-nft', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ svg, metadata }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: response.statusText }));
-        console.error('IPFS upload error response:', errorData);
-        throw new Error('IPFS upload failed: An error occurred. Please try again later.');
-      }
-    } catch (error: any) {
-      console.error('IPFS upload error:', error);
-      // Re-throw with user-friendly message
-      if (error.message.includes('IPFS upload failed')) {
-        throw error;
-      }
-      throw new Error('IPFS upload failed: An error occurred. Please try again later.');
-    }
-
-    const ipfsResult = await response.json();
-    const tokenURI = ipfsResult.metadataIpfsUrl;
-    console.log('✅ Uploaded to IPFS:', tokenURI);
+    // tokenURI는 짧은 문자열로 설정 (data URI는 너무 길어서 가스 제한에 걸림)
+    // 실제 메타데이터는 api/metadata/[tokenId].ts에서 컨트랙트의 getTwinMatch를 읽어서 동적으로 생성
+    // tokenId는 아직 모르므로 임시로 'temp' 사용 (컨트랙트에서 저장만 하고, 실제 조회는 getTwinMatch 사용)
+    const tokenURI = 'temp';
+    console.log('✅ Using short tokenURI to avoid gas limit');
     
     const contractArgs: [`0x${string}`, `0x${string}`, bigint, string, string, string] = [
       user1Address as `0x${string}`,
@@ -183,7 +159,7 @@ export function useMintNFT() {
   };
 }
 
-// Generate SVG and metadata (returns both for IPFS upload)
+// Generate SVG and metadata (for API storage)
 function generateNFTData(result: SimilarityResult, user1Username?: string, user1PfpUrl?: string): { svg: string; metadata: any } {
   // Generate NFT SVG using the shared function
   const username1 = user1Username || 'You';
@@ -208,11 +184,11 @@ function generateNFTData(result: SimilarityResult, user1Username?: string, user1
   console.log('🎨 Generated SVG length:', catSVG.length);
   console.log('🎨 SVG preview (first 200 chars):', catSVG.substring(0, 200));
   
-  // Prepare metadata (image will be set to IPFS URL after upload)
+  // Prepare metadata (image will be set by API endpoint)
   const metadata = {
     name: `@${username2} x @${username1} - ${result.similarity.toFixed(1)}% Match`,
     description: `✨ Starry Night Match Found! @${username1} and @${username2} share a ${result.similarity.toFixed(1)}% compatibility under the stars on Farcaster! They share ${result.sharedHashtags.length} common interests${result.sharedHashtags.length > 0 ? ': ' + result.sharedHashtags.slice(0, 3).join(', ') : ''}. A beautiful connection in the night sky! ⭐`,
-    image: '', // Will be set to IPFS URL after upload
+    image: '', // Will be set by API endpoint
     attributes: [
       {
         trait_type: "Twin 1",

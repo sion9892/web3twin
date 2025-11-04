@@ -103,7 +103,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     if (!response.ok) {
-      const errorData = (await response.json()) as NeynarError;
+      const errorText = await response.text();
+      let errorData: NeynarError;
+      try {
+        errorData = JSON.parse(errorText) as NeynarError;
+      } catch {
+        errorData = { message: errorText };
+      }
+      
+      // Rate limit 에러 명시적으로 처리
+      if (response.status === 429) {
+        return res.status(429).json({
+          error: 'API rate limit exceeded. Please try again in a few moments.',
+          code: 'RATE_LIMIT_EXCEEDED',
+        });
+      }
+      
       return res.status(response.status).json({
         error: errorData.message || 'Neynar API error',
         code: errorData.code,

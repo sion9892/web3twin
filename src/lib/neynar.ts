@@ -98,7 +98,12 @@ export async function getFollowers(fid: number, limit: number = 100): Promise<Fo
       );
       
       if (!response.ok) {
-        console.error('Failed to fetch followers:', await response.text());
+        const errorText = await response.text();
+        console.error('Failed to fetch followers:', response.status, errorText);
+        if (response.status === 429) {
+          console.error('⚠️ Rate limit exceeded! Please wait a moment and try again.');
+          throw new Error('API rate limit exceeded. Please try again in a few moments.');
+        }
         return [];
       }
       
@@ -195,7 +200,12 @@ export async function getFollowing(fid: number, limit: number = 100): Promise<Fo
       );
       
       if (!response.ok) {
-        console.error('Failed to fetch following:', await response.text());
+        const errorText = await response.text();
+        console.error('Failed to fetch following:', response.status, errorText);
+        if (response.status === 429) {
+          console.error('⚠️ Rate limit exceeded! Please wait a moment and try again.');
+          throw new Error('API rate limit exceeded. Please try again in a few moments.');
+        }
         return [];
       }
       
@@ -280,7 +290,12 @@ export async function getRecentCasts(fid: number, limit: number = 25): Promise<C
       );
       
       if (!response.ok) {
-        console.error('Failed to fetch casts:', await response.text());
+        const errorText = await response.text();
+        console.error('Failed to fetch casts:', response.status, errorText);
+        if (response.status === 429) {
+          console.error('⚠️ Rate limit exceeded! Please wait a moment and try again.');
+          throw new Error('API rate limit exceeded. Please try again in a few moments.');
+        }
         return [];
       }
       
@@ -300,7 +315,12 @@ export async function getRecentCasts(fid: number, limit: number = 25): Promise<C
     const response = await fetch(proxyUrl);
     
     if (!response.ok) {
-      console.error('Failed to fetch casts:', await response.text());
+      const errorText = await response.text();
+      console.error('Failed to fetch casts:', response.status, errorText);
+      if (response.status === 429) {
+        console.error('⚠️ Rate limit exceeded! Please wait a moment and try again.');
+        throw new Error('API rate limit exceeded. Please try again in a few moments.');
+      }
       return [];
     }
     

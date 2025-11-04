@@ -3,11 +3,9 @@ import { useAccount, useChainId } from 'wagmi';
 import { findBestTwin, type TokenizedData, type SimilarityResult, type CastData } from '../lib/similarity';
 import { useMintNFT } from '../hooks/useMintNFT';
 import { useUserNFTs } from '../hooks/useUserNFTs';
-import { useTransferNFT } from '../hooks/useTransferNFT';
 import type { FollowerData } from '../lib/neynar';
 import { generateNFTSVG } from '../lib/generateNFTSVG';
 import NFTSuccessModal from './NFTSuccessModal';
-import NFTTransferModal from './NFTTransferModal';
 
 interface Step3ResultProps {
   userInfo: { username: string; fid: number; pfp_url?: string };
@@ -17,7 +15,7 @@ interface Step3ResultProps {
     casts: CastData[];
     tokens: TokenizedData;
   }>;
-  onShare: (result: SimilarityResult) => void;
+  onShare: (result: SimilarityResult, hash?: string) => void;
 }
 
 export default function Step3Result({
@@ -30,14 +28,11 @@ export default function Step3Result({
   const chainId = useChainId();
   const { mintNFT, isPending, isConfirming, isConfirmed, hash, error: mintContractError, mintedTokenId } = useMintNFT();
   const { tokenIds, refetchTokens } = useUserNFTs();
-  const { transferNFT: transferNFTHook, isPending: isTransferPending, isConfirming: isTransferConfirming, isConfirmed: isTransferConfirmed } = useTransferNFT();
   const [result, setResult] = useState<SimilarityResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [minting, setMinting] = useState(false);
   const [showNFTModal, setShowNFTModal] = useState(false);
   const [hasError, setHasError] = useState(false);
-  const [showTransferModal, setShowTransferModal] = useState(false);
-  const [transferring, setTransferring] = useState(false);
 
   useEffect(() => {
     calculateMatch();
@@ -153,25 +148,8 @@ export default function Step3Result({
       setShowNFTModal(true);
       setMinting(false);
       
-      // NFT is already minted to the connected address, so no transfer needed
-      // Transfer modal is available as an option in the success modal if needed
     }
   }, [isConfirmed, minting, isPending, isConfirming, refetchTokens, mintedTokenId, address]);
-
-  // Handle transfer confirmation
-  useEffect(() => {
-    if (isTransferConfirmed && transferring) {
-      console.log('✅ Transfer confirmed!');
-      setTransferring(false);
-      setShowTransferModal(false);
-      
-      // Refetch tokens after a short delay to ensure blockchain state is updated
-      setTimeout(() => {
-        console.log('🔄 Refetching tokens after transfer...');
-        refetchTokens();
-      }, 2000);
-    }
-  }, [isTransferConfirmed, transferring, refetchTokens]);
 
   // Handle contract errors
   useEffect(() => {
@@ -183,40 +161,6 @@ export default function Step3Result({
     }
   }, [mintContractError, minting]);
 
-  const handleTransferNFT = async () => {
-    // Use mintedTokenId if available, otherwise use the latest tokenId
-    const tokenIdToTransfer = mintedTokenId ?? 
-      (tokenIds && tokenIds.length > 0 
-        ? Number(tokenIds[tokenIds.length - 1]) 
-        : null);
-    
-    if (!tokenIdToTransfer || !address) {
-      console.error('Missing tokenId or address for transfer');
-      return;
-    }
-
-    console.log('🔄 Transfer NFT Debug:', {
-      tokenId: tokenIdToTransfer,
-      fromAddress: address,
-      toAddress: address,
-      note: 'Transferring to same address (Smart Wallet)'
-    });
-
-    setTransferring(true);
-    
-    try {
-      // Transfer from mint address to Smart Wallet address
-      // Note: If address is already Smart Wallet, this is still a valid operation
-      // that can help Base App recognize the NFT
-      await transferNFTHook(address, address, tokenIdToTransfer);
-      console.log('✅ Transfer transaction sent');
-      console.log('💡 Note: After transfer completes, Base App should recognize the NFT');
-    } catch (err: any) {
-      console.error('❌ Error transferring NFT:', err);
-      setTransferring(false);
-      setHasError(true);
-    }
-  };
 
   if (loading) {
     return (
@@ -371,7 +315,7 @@ export default function Step3Result({
                 <p>
                   <strong>💰 Low Cost Minting!</strong>
                   <br />
-                  Web3Twin NFTs are stored entirely on-chain, which may result in gas fees of approximately $0.5-$1.5.
+                  Web3Twin NFTs are stored entirely on-chain, which may result in gas fees of approximately $0.5-$2.0.
                   <br />
                   <small>💡 Base is an Ethereum Layer 2 network with gas fees that are 100x cheaper.</small>
                 </p>
@@ -380,7 +324,7 @@ export default function Step3Result({
           )}
           
           <button 
-            onClick={() => onShare(result)}
+            onClick={() => onShare(result, hash)}
             style={{
               backgroundColor: 'white',
               color: '#8b5cf6',
@@ -409,35 +353,15 @@ export default function Step3Result({
         <NFTSuccessModal
           isOpen={showNFTModal}
           onClose={() => setShowNFTModal(false)}
-          onTransferClick={() => setShowTransferModal(true)}
-          hash={hash}
           mintedTokenId={
             mintedTokenId ?? 
             (tokenIds && tokenIds.length > 0 
-              ? Number(tokenIds[tokenIds.length - 1]) 
+              ? Number(tokenIds[tokenIds.length - 1])
               : null)
           }
           address={address}
           result={result}
           userInfo={userInfo}
-        />
-
-        {/* Transfer Confirmation Modal */}
-        <NFTTransferModal
-          isOpen={showTransferModal}
-          onClose={() => setShowTransferModal(false)}
-          onTransfer={handleTransferNFT}
-          mintedTokenId={
-            mintedTokenId ?? 
-            (tokenIds && tokenIds.length > 0 
-              ? Number(tokenIds[tokenIds.length - 1]) 
-              : null)
-          }
-          address={address}
-          isTransferPending={isTransferPending}
-          isTransferConfirming={isTransferConfirming}
-          isTransferConfirmed={isTransferConfirmed}
-          transferring={transferring}
         />
 
       </div>

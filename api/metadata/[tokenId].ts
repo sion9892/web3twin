@@ -68,42 +68,49 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       transport: http(),
     });
 
-    // Get tokenURI from contract
-    const tokenURI = await publicClient.readContract({
+    // Get twin match data from contract
+    const twinMatch = await publicClient.readContract({
       address: CONTRACT_ADDRESS as `0x${string}`,
       abi: CONTRACT_ABI,
-      functionName: 'tokenURI',
+      functionName: 'getTwinMatch',
       args: [BigInt(tokenIdNum)],
     });
 
-    if (!tokenURI) {
+    if (!twinMatch) {
       return res.status(404).json({ error: 'Token not found' });
     }
 
-    // Parse data URI if it's a data URI
-    let metadata: any;
-    if (tokenURI.startsWith('data:application/json,')) {
-      // Extract JSON from data URI
-      const jsonStr = decodeURIComponent(tokenURI.replace('data:application/json,', ''));
-      metadata = JSON.parse(jsonStr);
-    } else if (tokenURI.startsWith('data:application/json;base64,')) {
-      // Handle base64 encoded data URI
-      const base64Str = tokenURI.replace('data:application/json;base64,', '');
-      const jsonStr = Buffer.from(base64Str, 'base64').toString('utf-8');
-      metadata = JSON.parse(jsonStr);
-    } else {
-      // If it's already a URL, fetch it
-      const response = await fetch(tokenURI);
-      metadata = await response.json();
-    }
-
-    // Replace image data URI with HTTP URL
-    if (metadata.image && metadata.image.startsWith('data:image/')) {
-      const baseUrl = process.env.VERCEL_URL 
-        ? `https://${process.env.VERCEL_URL}` 
-        : 'https://web3twin.vercel.app';
-      metadata.image = `${baseUrl}/api/image/${tokenId}`;
-    }
+    // Generate metadata from twin match data
+    const baseUrl = process.env.VERCEL_URL 
+      ? `https://${process.env.VERCEL_URL}` 
+      : 'https://web3twin.vercel.app';
+    
+    const similarity = Number(twinMatch.similarity);
+    const sharedHashtags = twinMatch.sharedHashtags ? twinMatch.sharedHashtags.split(', ').filter(Boolean) : [];
+    
+    const metadata = {
+      name: `Twin Match #${tokenId} - ${similarity}% Match`,
+      description: `✨ Starry Night Match Found! Two Farcaster users share a ${similarity}% compatibility under the stars! They share ${sharedHashtags.length} common interests${sharedHashtags.length > 0 ? ': ' + sharedHashtags.slice(0, 3).join(', ') : ''}. A beautiful connection in the night sky! ⭐`,
+      image: `${baseUrl}/api/image/${tokenId}`,
+      attributes: [
+        {
+          trait_type: "Similarity Score",
+          value: similarity.toFixed(1) + "%"
+        },
+        {
+          trait_type: "Night Sky Mood",
+          value: similarity > 80 ? "Brilliant ✨" : similarity > 60 ? "Starry 🌟" : "Moonlit 🌙"
+        },
+        {
+          trait_type: "Shared Topics",
+          value: sharedHashtags.length
+        },
+        {
+          trait_type: "Sky Color",
+          value: similarity > 80 ? "Starry Blue" : similarity > 60 ? "Deep Blue" : "Midnight Blue"
+        }
+      ]
+    };
 
     return res.status(200).json(metadata);
   } catch (error: any) {

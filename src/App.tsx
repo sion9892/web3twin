@@ -3,6 +3,7 @@ import CustomWalletButton from './components/CustomWalletButton';
 import Step1Handle from './components/Step1Handle';
 import Step2Preview from './components/Step2Preview';
 import Step3Result from './components/Step3Result';
+import Step4Share from './components/Step4Share';
 import type { UserInfo } from './lib/neynar';
 import type { CastData, TokenizedData, SimilarityResult } from './lib/similarity';
 import type { FollowerData } from './lib/neynar';
@@ -20,6 +21,7 @@ interface AppState {
     tokens: TokenizedData;
   }>;
   result: SimilarityResult | null;
+  transactionHash: string | undefined;
 }
 
 function App() {
@@ -30,6 +32,7 @@ function App() {
     userTokens: null,
     candidates: [],
     result: null,
+    transactionHash: undefined,
   });
 
   const handleStep1Complete = (userInfo: UserInfo) => {
@@ -58,11 +61,12 @@ function App() {
     }));
   };
 
-  const handleShare = (result: SimilarityResult) => {
+  const handleShare = (result: SimilarityResult, hash?: string) => {
     setState(prev => ({
       ...prev,
       currentStep: 4,
       result,
+      transactionHash: hash,
     }));
   };
 
@@ -74,21 +78,10 @@ function App() {
       userTokens: null,
       candidates: [],
       result: null,
+      transactionHash: undefined,
     });
   };
 
-  const getShareText = () => {
-    if (!state.result || !state.userInfo) return '';
-    
-    return encodeURIComponent(
-      `I just found my Web3Twin on Farcaster! 🎭\n\n@${state.userInfo.username} ↔️ @${state.result.username}\n${state.result.similarity.toFixed(1)}% similarity\n\nFind yours at web3twin.vercel.app`
-    );
-  };
-
-  const getWarpcastShareUrl = () => {
-    const text = getShareText();
-    return `https://warpcast.com/~/compose?text=${text}`;
-  };
 
   return (
     <div className="app">
@@ -141,65 +134,12 @@ function App() {
         )}
 
         {state.currentStep === 4 && state.result && state.userInfo && (
-          <div className="step-container">
-            <div className="step-content">
-              <h2 className="step-title">Share Your Twin Match! 🎉</h2>
-
-              <div className="share-summary">
-                <div className="summary-card">
-                  <div className="summary-row">
-                    <span className="summary-label">Your Handle:</span>
-                    <span className="summary-value">@{state.userInfo.username}</span>
-                  </div>
-                  <div className="summary-row">
-                    <span className="summary-label">Your Twin:</span>
-                    <span className="summary-value">@{state.result.username}</span>
-                  </div>
-                  <div className="summary-row">
-                    <span className="summary-label">Similarity:</span>
-                    <span className="summary-value">{state.result.similarity.toFixed(1)}%</span>
-                  </div>
-                  {state.result.sharedHashtags.length > 0 && (
-                    <div className="summary-row">
-                      <span className="summary-label">Shared Hashtags:</span>
-                      <span className="summary-value">
-                        {state.result.sharedHashtags.join(', ')}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="share-actions">
-                  <a
-                    href={getWarpcastShareUrl()}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="primary-button"
-                  >
-                    Cast on Farcaster
-                  </a>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(decodeURIComponent(getShareText()));
-                      alert('Share text copied to clipboard!');
-                    }}
-                    className="secondary-button"
-                  >
-                    Copy Share Text
-                  </button>
-                  <button onClick={handleReset} className="link-button">
-                    Find Another Twin
-                  </button>
-                </div>
-              </div>
-
-              <div className="info-card">
-                <p>
-                  Share your twin match on Farcaster and see if your friends can find their twins too!
-                </p>
-              </div>
-            </div>
-          </div>
+          <Step4Share
+            userInfo={state.userInfo}
+            result={state.result}
+            transactionHash={state.transactionHash}
+            onReset={handleReset}
+          />
         )}
       </main>
 

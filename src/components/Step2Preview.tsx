@@ -130,15 +130,29 @@ export default function Step2Preview({ userInfo, onComplete }: Step2PreviewProps
           });
         }
         
-        const candidateCasts = await getRecentCasts(candidate.fid, CAST_LIMIT);
+        try {
+          const candidateCasts = await getRecentCasts(candidate.fid, CAST_LIMIT);
+          
+          if (candidateCasts.length > 0) {
+            const tokens = preprocessCasts(candidateCasts);
+            candidatesWithData.push({
+              info: candidate,
+              casts: candidateCasts,
+              tokens,
+            });
+          }
+        } catch (err: any) {
+          // Rate limit 에러는 전체 프로세스 중단
+          if (err?.message?.includes('rate limit')) {
+            throw err;
+          }
+          // 다른 에러는 해당 candidate만 스킵
+          console.warn(`Failed to fetch casts for ${candidate.username}:`, err);
+        }
         
-        if (candidateCasts.length > 0) {
-          const tokens = preprocessCasts(candidateCasts);
-          candidatesWithData.push({
-            info: candidate,
-            casts: candidateCasts,
-            tokens,
-          });
+        // Rate limit 방지를 위한 delay (API 호출 사이에 100ms 대기)
+        if (i < sampledCandidates.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
         
         // Update progress
@@ -166,9 +180,13 @@ export default function Step2Preview({ userInfo, onComplete }: Step2PreviewProps
         onComplete(casts, userTokens, candidatesWithData);
       }, 500);
 
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error loading data:', err);
-      setError('An error occurred while analyzing. Please try again.');
+      if (err?.message?.includes('rate limit')) {
+        setError('API rate limit exceeded. Please wait a few moments and try again.');
+      } else {
+        setError('An error occurred while analyzing. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
