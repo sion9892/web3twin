@@ -86,7 +86,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
         params.append('fid', queryParams.fid);
         params.append('limit', (queryParams.limit as string) || '25');
-        neynarUrl = `${NEYNAR_BASE_URL}/casts?${params}`;
+        // Use /feed/user/casts endpoint (free tier compatible)
+        neynarUrl = `${NEYNAR_BASE_URL}/feed/user/casts?${params}`;
         break;
       }
 
@@ -198,13 +199,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       case 'casts': {
+        // /feed/user/casts returns { casts: [...] } directly, not wrapped in result
+        const casts = data.casts || data.result?.casts || [];
         return res.status(200).json({
-          casts: data.result?.casts?.map((cast: any) => ({
+          casts: casts.map((cast: any) => ({
             text: cast.text,
             author_fid: cast.author?.fid,
             hash: cast.hash,
             timestamp: cast.timestamp,
-          })) || [],
+          })),
         });
       }
 
