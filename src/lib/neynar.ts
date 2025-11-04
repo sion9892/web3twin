@@ -66,14 +66,24 @@ export async function getUserByUsername(username: string): Promise<UserInfo | nu
     const proxyUrl = API_BASE 
       ? `${API_BASE}/api/neynar-proxy?endpoint=user&username=${cleanUsername}`
       : `/api/neynar-proxy?endpoint=user&username=${cleanUsername}`;
+    
+    console.log('🔍 Fetching user from proxy:', proxyUrl);
     const response = await fetch(proxyUrl);
     
     if (!response.ok) {
-      console.error('Failed to fetch user:', await response.text());
+      const errorText = await response.text();
+      console.error('❌ Failed to fetch user:', response.status, errorText);
       return null;
     }
     
     const data = await response.json();
+    console.log('✅ Proxy response:', data);
+    
+    if (!data.user) {
+      console.error('❌ No user in proxy response:', data);
+      return null;
+    }
+    
     return data.user;
   } catch (error) {
     console.error('Error fetching user:', error);
