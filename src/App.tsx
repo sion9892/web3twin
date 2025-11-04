@@ -130,6 +130,7 @@ function App() {
             userTokens={state.userTokens}
             candidates={state.candidates}
             onShare={handleShare}
+            onReset={handleReset}
           />
         )}
 

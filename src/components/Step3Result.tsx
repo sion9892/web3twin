@@ -16,6 +16,7 @@ interface Step3ResultProps {
     tokens: TokenizedData;
   }>;
   onShare: (result: SimilarityResult, hash?: string) => void;
+  onReset: () => void;
 }
 
 export default function Step3Result({
@@ -23,6 +24,7 @@ export default function Step3Result({
   userTokens,
   candidates,
   onShare,
+  onReset,
 }: Step3ResultProps) {
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
@@ -40,6 +42,28 @@ export default function Step3Result({
 
   const calculateMatch = () => {
     setLoading(true);
+    
+    // Check if self-match (only one candidate and it's the user themselves)
+    const isSelfMatch = candidates.length === 1 && candidates[0].info.fid === userInfo.fid;
+    
+    if (isSelfMatch) {
+      // Hardcode 100% for self-match
+      const selfMatch: SimilarityResult = {
+        fid: userInfo.fid,
+        username: userInfo.username,
+        displayName: (userInfo as any).display_name || userInfo.username,
+        pfpUrl: userInfo.pfp_url || '',
+        similarity: 100,
+        textJaccard: 1.0,
+        hashtagOverlap: 1.0,
+        emojiOverlap: 1.0,
+        sharedHashtags: [],
+        sharedEmojis: [],
+      };
+      setResult(selfMatch);
+      setLoading(false);
+      return;
+    }
     
     // Prepare candidates in the format expected by findBestTwin
     const formattedCandidates = candidates.map(c => ({
@@ -188,6 +212,9 @@ export default function Step3Result({
     );
   }
 
+  // Check if result is self-match (no network found)
+  const isSelfMatch = result.fid === userInfo.fid;
+
   return (
     <div className="step-container">
       <div className="step-content">
@@ -198,32 +225,71 @@ export default function Step3Result({
             <div className="twin-info">
               <h3 className="twin-name">{result.displayName}</h3>
               <p className="twin-username">@{result.username}</p>
-              <a
-                href={`https://warpcast.com/${result.username}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  display: 'inline-block',
-                  marginTop: '0.5rem',
-                  fontSize: '0.875rem',
-                  color: '#8b5cf6',
-                  textDecoration: 'none',
-                  padding: '0.375rem 0.75rem',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '0.5rem',
-                  transition: 'all 0.2s ease'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = '#8b5cf6';
-                  e.currentTarget.style.backgroundColor = '#f5f3ff';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = '#e5e7eb';
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                }}
-              >
-                View Your Twin on Farcaster
-              </a>
+              {!isSelfMatch && (
+                <a
+                  href={`https://warpcast.com/${result.username}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-block',
+                    marginTop: '0.5rem',
+                    fontSize: '0.875rem',
+                    color: '#8b5cf6',
+                    textDecoration: 'none',
+                    padding: '0.375rem 0.75rem',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '0.5rem',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = '#8b5cf6';
+                    e.currentTarget.style.backgroundColor = '#f5f3ff';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = '#e5e7eb';
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
+                >
+                  View Your Twin on Farcaster
+                </a>
+              )}
+              {isSelfMatch && (
+                <div style={{
+                  marginTop: '1.5rem',
+                  padding: '1.25rem 1.5rem',
+                  background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+                  border: '2px solid #fbbf24',
+                  borderRadius: '0.75rem',
+                  color: '#92400e',
+                  boxShadow: '0 4px 6px rgba(251, 191, 36, 0.1)',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}>
+                  <div style={{
+                    position: 'absolute',
+                    top: '-10px',
+                    right: '-10px',
+                    width: '60px',
+                    height: '60px',
+                    background: 'rgba(251, 191, 36, 0.2)',
+                    borderRadius: '50%',
+                    zIndex: 0
+                  }} />
+                  <p style={{ 
+                    margin: 0, 
+                    fontSize: '0.9375rem', 
+                    fontWeight: '600',
+                    lineHeight: '1.6',
+                    position: 'relative',
+                    zIndex: 1
+                  }}>
+                    💡 Try mentioning more people in your casts!<br />
+                    <span style={{ fontWeight: '400', fontSize: '0.875rem' }}>
+                      You'll be able to find your twin.
+                    </span>
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -257,70 +323,84 @@ export default function Step3Result({
         </div>
 
         <div className="action-buttons">
+          <button 
+            onClick={async () => {
+              if (!isConnected || !address) {
+                // 지갑이 연결되지 않은 경우, 연결을 유도할 수 있지만 여기서는 단순히 에러 표시
+                alert('Please connect your wallet first to mint NFT.');
+                return;
+              }
+              
+              if (isConfirmed) {
+                // 이미 mint된 경우 모달만 열기 (추가 fee 없음)
+                // 최신 tokenId를 가져오기 위해 refetch
+                await refetchTokens();
+                setShowNFTModal(true);
+              } else {
+                // 아직 mint하지 않은 경우 mint 실행
+                handleMintNFT();
+              }
+            }}
+            className="primary-button cat-mint-button"
+            disabled={minting || isPending || isConfirming}
+          >
+            {isPending 
+              ? '💳 Check Your Wallet...' 
+              : isConfirming 
+              ? '⏳ Confirming...' 
+              : isConfirmed 
+              ? '🎉 Starry Night NFT Minted! ✨' 
+              : 'Get Your Starry Night NFT'
+            }
+          </button>
+          
+          {(isPending || isConfirming) && (
+            <div className="minting-status">
+              <div className="spinner" />
+              <p className="minting-step-text">
+                {isPending && '💳 Waiting for wallet confirmation...'}
+                {isConfirming && '⏳ Confirming transaction on blockchain...'}
+              </p>
+            </div>
+          )}
+          
+          {hasError && (
+            <div style={{ 
+              padding: '1rem', 
+              background: '#fee2e2', 
+              borderRadius: '8px', 
+              fontSize: '1rem',
+              textAlign: 'center',
+              border: '1px solid #fca5a5',
+              color: '#991b1b',
+              marginTop: '1rem'
+            }}>
+              <p style={{ margin: 0 }}>
+                An error occurred. Please try again later.
+              </p>
+            </div>
+          )}
+          
           {isConnected && address && (
-            <>
-              <button 
-              onClick={async () => {
-                if (isConfirmed) {
-                  // 이미 mint된 경우 모달만 열기 (추가 fee 없음)
-                  // 최신 tokenId를 가져오기 위해 refetch
-                  await refetchTokens();
-                  setShowNFTModal(true);
-                } else {
-                  // 아직 mint하지 않은 경우 mint 실행
-                  handleMintNFT();
-                }
-              }}
-                className="primary-button cat-mint-button"
-                disabled={minting || isPending || isConfirming}
-              >
-                {isPending 
-                  ? '💳 Check Your Wallet...' 
-                  : isConfirming 
-                  ? '⏳ Confirming...' 
-                  : isConfirmed 
-                  ? '🎉 Starry Night NFT Minted! ✨' 
-                  : 'Get Your Starry Night NFT'
-                }
-              </button>
-              
-              {(isPending || isConfirming) && (
-                <div className="minting-status">
-                  <div className="spinner" />
-                  <p className="minting-step-text">
-                    {isPending && '💳 Waiting for wallet confirmation...'}
-                    {isConfirming && '⏳ Confirming transaction on blockchain...'}
-                  </p>
-                </div>
-              )}
-              
-              {hasError && (
-                <div style={{ 
-                  padding: '1rem', 
-                  background: '#fee2e2', 
-                  borderRadius: '8px', 
-                  fontSize: '1rem',
-                  textAlign: 'center',
-                  border: '1px solid #fca5a5',
-                  color: '#991b1b',
-                  marginTop: '1rem'
-                }}>
-                  <p style={{ margin: 0 }}>
-                    An error occurred. Please try again later.
-                  </p>
-                </div>
-              )}
-              
-              <div className="info-card">
-                <p>
-                  <strong>💰 Low Cost Minting!</strong>
-                  <br />
-                  Web3Twin NFTs are stored entirely on-chain, which may result in gas fees of approximately $0.5-$2.0.
-                  <br />
-                  <small>💡 Base is an Ethereum Layer 2 network with gas fees that are 100x cheaper.</small>
-                </p>
-              </div>
-            </>
+            <div className="info-card">
+              <p>
+                <strong>💰 Low Cost Minting!</strong>
+                <br />
+                Web3Twin NFTs are stored entirely on-chain, which may result in gas fees of approximately $0.001-$2.0.
+                <br />
+                <small>💡 Base is an Ethereum Layer 2 network with gas fees that are 100x cheaper.</small>
+              </p>
+            </div>
+          )}
+          
+          {!isConnected && (
+            <div className="info-card">
+              <p>
+                <strong>🔗 Connect Your Wallet</strong>
+                <br />
+                Please connect your wallet to mint your NFT. Base Smart Wallet is recommended for the best experience.
+              </p>
+            </div>
           )}
           
           <button 
@@ -346,6 +426,10 @@ export default function Step3Result({
             }}
           >
             Share as Cast →
+          </button>
+          
+          <button onClick={onReset} className="link-button">
+            Find Another Twin
           </button>
         </div>
 

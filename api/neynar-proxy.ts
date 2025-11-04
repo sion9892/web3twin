@@ -86,8 +86,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
         params.append('fid', queryParams.fid);
         params.append('limit', (queryParams.limit as string) || '25');
-        // 무료 플랜에서는 /feed/user/casts 사용 (402 에러 방지)
-        neynarUrl = `${NEYNAR_BASE_URL}/feed/user/casts?${params}`;
+        neynarUrl = `${NEYNAR_BASE_URL}/casts?${params}`;
         break;
       }
 
@@ -120,12 +119,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         });
       }
       
-      // Payment Required 에러 처리 (무료 플랜 제한)
+      // 402 Payment Required 에러 처리 (followers/following 엔드포인트는 유료 플랜 필요)
       if (response.status === 402) {
+        console.warn('⚠️ Endpoint requires paid plan. The app will fall back to using mentions from casts.');
         return res.status(402).json({
-          error: 'This feature requires a paid Neynar API plan. Please upgrade at https://neynar.com/#pricing',
+          error: 'This endpoint requires a paid Neynar plan. The app will use mentions from casts instead.',
           code: 'PAYMENT_REQUIRED',
-          upgradeUrl: 'https://neynar.com/#pricing',
         });
       }
       
@@ -145,22 +144,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Transform response based on endpoint
     switch (endpoint) {
       case 'user': {
-        // Neynar API 응답 구조: data.result.user 또는 data.user
-        const userData = data.result?.user || data.user;
-        
-        if (!userData) {
-          console.error('❌ No user data in Neynar response:', JSON.stringify(data, null, 2));
-          return res.status(404).json({ error: 'User not found' });
-        }
-        
         return res.status(200).json({
           user: {
-            fid: userData.fid,
-            username: userData.username,
-            display_name: userData.display_name,
-            pfp_url: userData.pfp_url,
-            follower_count: userData.follower_count,
-            following_count: userData.following_count,
+            fid: data.result?.user?.fid,
+            username: data.result?.user?.username,
+            display_name: data.result?.user?.display_name,
+            pfp_url: data.result?.user?.pfp_url,
+            follower_count: data.result?.user?.follower_count,
+            following_count: data.result?.user?.following_count,
           },
         });
       }
@@ -207,16 +198,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       case 'casts': {
-        // /feed/user/casts 응답 구조: data.result.casts 또는 data.casts
-        const castsData = data.result?.casts || data.casts || [];
-        
         return res.status(200).json({
-          casts: castsData.map((cast: any) => ({
+          casts: data.result?.casts?.map((cast: any) => ({
             text: cast.text,
-            author_fid: cast.author?.fid || cast.author_fid,
+            author_fid: cast.author?.fid,
             hash: cast.hash,
             timestamp: cast.timestamp,
-          })),
+          })) || [],
         });
       }
 

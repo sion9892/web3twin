@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
 import {
-  getFollowers,
-  getFollowing,
   getRecentCasts,
-  mergeAndDedupeCandidates,
+  getUserByUsername,
   sampleCandidates,
   extractKeywords,
+  extractMentionsFromCasts,
   type UserInfo,
   type FollowerData,
 } from '../lib/neynar';
@@ -56,56 +55,60 @@ export default function Step2Preview({ userInfo, onComplete }: Step2PreviewProps
       setKeywords(keywords);
       setProgress(25);
 
-      // Step 2: Try to load followers and following first
-      setStage('Loading your network...');
-      const [followers, following] = await Promise.all([
-        getFollowers(userInfo.fid, 100),
-        getFollowing(userInfo.fid, 100),
-      ]);
-      setProgress(40);
-
-      // Step 3: Merge and sample candidates
-      setStage('Selecting candidates...');
-      let allCandidates = mergeAndDedupeCandidates(followers, following);
+      // Step 2: Extract mentions from casts
+      setStage('Extracting mentions from your casts...');
+      const mentionedUsernames = extractMentionsFromCasts(casts);
       
-      // If no network candidates, fallback to top users
-      if (allCandidates.length === 0) {
-        setStage('Using popular users as candidates...');
-        const topUsers = [
-          { fid: 3, username: 'dwr', display_name: 'Dan Romero', pfp_url: 'https://imagedelivery.net/BXluQx4ige9GuW0Ia56BHw/3f5d69fd-e7b0-4a7e-8a8b-0c8c8c8c8c8c/avatar' },
-          { fid: 5650, username: 'vitalik', display_name: 'Vitalik Buterin', pfp_url: 'https://imagedelivery.net/BXluQx4ige9GuW0Ia56BHw/5650/avatar' },
-          { fid: 2, username: 'v', display_name: 'V', pfp_url: 'https://imagedelivery.net/BXluQx4ige9GuW0Ia56BHw/2/avatar' },
-          { fid: 1, username: 'farcaster', display_name: 'Farcaster', pfp_url: 'https://imagedelivery.net/BXluQx4ige9GuW0Ia56BHw/1/avatar' },
-          { fid: 4, username: 'varunsrin', display_name: 'Varun Srinivasan', pfp_url: 'https://imagedelivery.net/BXluQx4ige9GuW0Ia56BHw/4/avatar' },
-          { fid: 5, username: 'jessepollak', display_name: 'Jesse Pollak', pfp_url: 'https://imagedelivery.net/BXluQx4ige9GuW0Ia56BHw/5/avatar' },
-          { fid: 6, username: 'a16z', display_name: 'a16z', pfp_url: 'https://imagedelivery.net/BXluQx4ige9GuW0Ia56BHw/6/avatar' },
-          { fid: 7, username: 'coinbase', display_name: 'Coinbase', pfp_url: 'https://imagedelivery.net/BXluQx4ige9GuW0Ia56BHw/7/avatar' },
-          { fid: 8, username: 'paradigm', display_name: 'Paradigm', pfp_url: 'https://imagedelivery.net/BXluQx4ige9GuW0Ia56BHw/8/avatar' },
-          { fid: 9, username: 'uniswap', display_name: 'Uniswap', pfp_url: 'https://imagedelivery.net/BXluQx4ige9GuW0Ia56BHw/9/avatar' },
-          { fid: 10, username: 'balajis', display_name: 'Balaji', pfp_url: 'https://imagedelivery.net/BXluQx4ige9GuW0Ia56BHw/10/avatar' },
-          { fid: 11, username: 'elonmusk', display_name: 'Elon Musk', pfp_url: 'https://imagedelivery.net/BXluQx4ige9GuW0Ia56BHw/11/avatar' },
-          { fid: 12, username: 'naval', display_name: 'Naval', pfp_url: 'https://imagedelivery.net/BXluQx4ige9GuW0Ia56BHw/12/avatar' },
-          { fid: 13, username: 'marc', display_name: 'Marc Andreessen', pfp_url: 'https://imagedelivery.net/BXluQx4ige9GuW0Ia56BHw/13/avatar' },
-          { fid: 14, username: 'cdixon', display_name: 'Chris Dixon', pfp_url: 'https://imagedelivery.net/BXluQx4ige9GuW0Ia56BHw/14/avatar' },
-          { fid: 15, username: 'sama', display_name: 'Sam Altman', pfp_url: 'https://imagedelivery.net/BXluQx4ige9GuW0Ia56BHw/15/avatar' },
-          { fid: 16, username: 'gavin', display_name: 'Gavin Wood', pfp_url: 'https://imagedelivery.net/BXluQx4ige9GuW0Ia56BHw/16/avatar' },
-          { fid: 17, username: 'vbuterin', display_name: 'Vitalik Buterin', pfp_url: 'https://imagedelivery.net/BXluQx4ige9GuW0Ia56BHw/17/avatar' },
-          { fid: 18, username: 'cz_binance', display_name: 'CZ', pfp_url: 'https://imagedelivery.net/BXluQx4ige9GuW0Ia56BHw/18/avatar' },
-          { fid: 19, username: 'brian_armstrong', display_name: 'Brian Armstrong', pfp_url: 'https://imagedelivery.net/BXluQx4ige9GuW0Ia56BHw/19/avatar' },
-          { fid: 20, username: 'justinsuntron', display_name: 'Justin Sun', pfp_url: 'https://imagedelivery.net/BXluQx4ige9GuW0Ia56BHw/20/avatar' },
-        ];
-        
-        // Remove current user from candidates
-        allCandidates = topUsers.filter(user => user.fid !== userInfo.fid);
-        
-        if (allCandidates.length === 0) {
-          setError('No candidates available. Please try a different handle.');
-          return;
+      // Filter out current user's username
+      const filteredMentions = mentionedUsernames.filter(
+        username => username.toLowerCase() !== userInfo.username.toLowerCase()
+      );
+      
+      // Fetch user info for mentioned usernames
+      let allCandidates: FollowerData[] = [];
+      if (filteredMentions.length > 0) {
+        for (const username of filteredMentions.slice(0, 50)) { // Limit to 50 mentions
+          try {
+            const mentionedUser = await getUserByUsername(username);
+            if (mentionedUser && mentionedUser.fid !== userInfo.fid) {
+              allCandidates.push({
+                fid: mentionedUser.fid,
+                username: mentionedUser.username,
+                display_name: mentionedUser.display_name,
+                pfp_url: mentionedUser.pfp_url || '',
+              });
+            }
+            // Small delay to avoid rate limiting
+            await new Promise(resolve => setTimeout(resolve, 50));
+          } catch (err) {
+            console.warn(`Failed to fetch user ${username}:`, err);
+          }
         }
+      }
+      
+      setProgress(40);
+      
+      // Step 3: If no mentions found, use self as twin
+      const isSelfMatchCase = allCandidates.length === 0;
+      if (isSelfMatchCase) {
+        setStage('No mentions found, creating self-match...');
+        allCandidates = [{
+          fid: userInfo.fid,
+          username: userInfo.username,
+          display_name: userInfo.display_name || userInfo.username,
+          pfp_url: userInfo.pfp_url || '',
+        }];
       }
 
       const sampledCandidates = sampleCandidates(allCandidates, SAMPLE_SIZE);
       setProgress(50);
+
+      console.log('🔍 Candidates:', {
+        totalMentions: filteredMentions.length,
+        validCandidates: allCandidates.length,
+        sampled: sampledCandidates.length,
+        isSelfMatch: isSelfMatchCase
+      });
 
       // Step 4: Fetch casts for each candidate
       setStage(`Analyzing ${sampledCandidates.length} candidates...`);
@@ -115,58 +118,49 @@ export default function Step2Preview({ userInfo, onComplete }: Step2PreviewProps
         tokens: TokenizedData;
       }> = [];
       
-      for (let i = 0; i < sampledCandidates.length; i++) {
-        const candidate = sampledCandidates[i];
-        // 디버깅: candidate의 pfp_url 및 pfp 객체 확인
-        if (i === 0) {
-          console.log('🔍 First candidate data:', {
-            fid: candidate.fid,
-            username: candidate.username,
-            display_name: candidate.display_name,
-            pfp_url: candidate.pfp_url,
-            pfp: candidate.pfp,
-            pfpUrlFromPfp: candidate.pfp?.url,
-            hasPfpUrl: !!candidate.pfp_url && candidate.pfp_url.trim() !== ''
-          });
-        }
-        
-        try {
-          const candidateCasts = await getRecentCasts(candidate.fid, CAST_LIMIT);
-          
-          if (candidateCasts.length > 0) {
-            const tokens = preprocessCasts(candidateCasts);
-            candidatesWithData.push({
-              info: candidate,
-              casts: candidateCasts,
-              tokens,
-            });
-          }
-        } catch (err: any) {
-          // Rate limit 에러는 전체 프로세스 중단
-          if (err?.message?.includes('rate limit')) {
-            throw err;
-          }
-          // 다른 에러는 해당 candidate만 스킵
-          console.warn(`Failed to fetch casts for ${candidate.username}:`, err);
-        }
-        
-        // Rate limit 방지를 위한 delay (API 호출 사이에 100ms 대기)
-        if (i < sampledCandidates.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 100));
-        }
-        
-        // Update progress
-        setProgress(50 + ((i + 1) / sampledCandidates.length) * 45);
-      }
-      
-      // 디버깅: candidatesWithData의 첫 번째 항목 확인
-      if (candidatesWithData.length > 0) {
-        console.log('🔍 First candidateWithData:', {
-          fid: candidatesWithData[0].info.fid,
-          username: candidatesWithData[0].info.username,
-          pfp_url: candidatesWithData[0].info.pfp_url,
-          hasPfpUrl: !!candidatesWithData[0].info.pfp_url && candidatesWithData[0].info.pfp_url.trim() !== ''
+      // If self-match case, use existing casts and tokens (skip API call)
+      if (isSelfMatchCase && sampledCandidates.length === 1 && sampledCandidates[0].fid === userInfo.fid) {
+        console.log('🔍 Self-match case: using existing casts and tokens');
+        const userTokens = preprocessCasts(casts);
+        candidatesWithData.push({
+          info: sampledCandidates[0],
+          casts: casts,
+          tokens: userTokens,
         });
+        setProgress(95);
+      } else {
+        // Normal case: fetch casts for each candidate
+        for (let i = 0; i < sampledCandidates.length; i++) {
+          const candidate = sampledCandidates[i];
+          
+          try {
+            const candidateCasts = await getRecentCasts(candidate.fid, CAST_LIMIT);
+            
+            if (candidateCasts.length > 0) {
+              const tokens = preprocessCasts(candidateCasts);
+              candidatesWithData.push({
+                info: candidate,
+                casts: candidateCasts,
+                tokens,
+              });
+            }
+          } catch (err: any) {
+            // Rate limit 에러는 전체 프로세스 중단
+            if (err?.message?.includes('rate limit')) {
+              throw err;
+            }
+            // 다른 에러는 해당 candidate만 스킵
+            console.warn(`Failed to fetch casts for ${candidate.username}:`, err);
+          }
+          
+          // Rate limit 방지를 위한 delay (API 호출 사이에 100ms 대기)
+          if (i < sampledCandidates.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
+          
+          // Update progress
+          setProgress(50 + ((i + 1) / sampledCandidates.length) * 45);
+        }
       }
 
       setProgress(100);

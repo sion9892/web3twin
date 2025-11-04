@@ -211,10 +211,6 @@ function generateNFTData(result: SimilarityResult, user1Username?: string, user1
         value: result.sharedHashtags.length
       },
       {
-        trait_type: "GM Streak",
-        value: result.matchingGmStreak ? "Twinkling ✨" : "Dark Night 🌑"
-      },
-      {
         trait_type: "Sky Color",
         value: result.similarity > 80 ? "Starry Blue" : result.similarity > 60 ? "Deep Blue" : "Midnight Blue"
       }

@@ -66,24 +66,14 @@ export async function getUserByUsername(username: string): Promise<UserInfo | nu
     const proxyUrl = API_BASE 
       ? `${API_BASE}/api/neynar-proxy?endpoint=user&username=${cleanUsername}`
       : `/api/neynar-proxy?endpoint=user&username=${cleanUsername}`;
-    
-    console.log('🔍 Fetching user from proxy:', proxyUrl);
     const response = await fetch(proxyUrl);
     
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ Failed to fetch user:', response.status, errorText);
+      console.error('Failed to fetch user:', await response.text());
       return null;
     }
     
     const data = await response.json();
-    console.log('✅ Proxy response:', data);
-    
-    if (!data.user) {
-      console.error('❌ No user in proxy response:', data);
-      return null;
-    }
-    
     return data.user;
   } catch (error) {
     console.error('Error fetching user:', error);
@@ -113,6 +103,9 @@ export async function getFollowers(fid: number, limit: number = 100): Promise<Fo
         if (response.status === 429) {
           console.error('⚠️ Rate limit exceeded! Please wait a moment and try again.');
           throw new Error('API rate limit exceeded. Please try again in a few moments.');
+        }
+        if (response.status === 402) {
+          console.warn('⚠️ Followers endpoint requires paid plan. Falling back to mentions from casts.');
         }
         return [];
       }
@@ -164,7 +157,11 @@ export async function getFollowers(fid: number, limit: number = 100): Promise<Fo
     const response = await fetch(proxyUrl);
     
     if (!response.ok) {
-      console.error('Failed to fetch followers:', await response.text());
+      const errorText = await response.text();
+      console.error('Failed to fetch followers:', response.status, errorText);
+      if (response.status === 402) {
+        console.warn('⚠️ Followers endpoint requires paid plan. Falling back to mentions from casts.');
+      }
       return [];
     }
     
@@ -216,6 +213,9 @@ export async function getFollowing(fid: number, limit: number = 100): Promise<Fo
           console.error('⚠️ Rate limit exceeded! Please wait a moment and try again.');
           throw new Error('API rate limit exceeded. Please try again in a few moments.');
         }
+        if (response.status === 402) {
+          console.warn('⚠️ Following endpoint requires paid plan. Falling back to mentions from casts.');
+        }
         return [];
       }
       
@@ -256,7 +256,11 @@ export async function getFollowing(fid: number, limit: number = 100): Promise<Fo
     const response = await fetch(proxyUrl);
     
     if (!response.ok) {
-      console.error('Failed to fetch following:', await response.text());
+      const errorText = await response.text();
+      console.error('Failed to fetch following:', response.status, errorText);
+      if (response.status === 402) {
+        console.warn('⚠️ Following endpoint requires paid plan. Falling back to mentions from casts.');
+      }
       return [];
     }
     
@@ -325,30 +329,12 @@ export async function getRecentCasts(fid: number, limit: number = 25): Promise<C
     const response = await fetch(proxyUrl);
     
     if (!response.ok) {
-      let errorText = '';
-      try {
-        errorText = await response.text();
-      } catch (e) {
-        errorText = 'Unknown error';
-      }
+      const errorText = await response.text();
       console.error('Failed to fetch casts:', response.status, errorText);
-      
-      if (response.status === 402) {
-        let errorData;
-        try {
-          errorData = JSON.parse(errorText);
-        } catch {
-          errorData = { error: errorText };
-        }
-        console.error('⚠️ Payment Required:', errorData.error);
-        throw new Error('This feature requires a paid Neynar API plan. Please upgrade your API key at https://neynar.com/#pricing');
-      }
-      
       if (response.status === 429) {
         console.error('⚠️ Rate limit exceeded! Please wait a moment and try again.');
         throw new Error('API rate limit exceeded. Please try again in a few moments.');
       }
-      
       return [];
     }
     
@@ -392,6 +378,26 @@ export function sampleCandidates(candidates: FollowerData[], k: number): Followe
   }
   
   return shuffled.slice(0, k);
+}
+
+/**
+ * Extract mentioned usernames from casts
+ * Returns array of unique usernames (without @)
+ */
+export function extractMentionsFromCasts(casts: CastData[]): string[] {
+  const mentions = new Set<string>();
+  
+  for (const cast of casts) {
+    // Extract @username patterns
+    const mentionRegex = /@(\w+)/g;
+    let match;
+    while ((match = mentionRegex.exec(cast.text)) !== null) {
+      const username = match[1].toLowerCase();
+      mentions.add(username);
+    }
+  }
+  
+  return Array.from(mentions);
 }
 
 /**

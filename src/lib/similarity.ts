@@ -44,7 +44,6 @@ export interface TokenizedData {
   words: Set<string>;
   hashtags: Set<string>;
   emojis: Set<string>;
-  gmStreak: number;
 }
 
 export interface SimilarityResult {
@@ -56,10 +55,8 @@ export interface SimilarityResult {
   textJaccard: number;
   hashtagOverlap: number;
   emojiOverlap: number;
-  gmBonus: number;
   sharedHashtags: string[];
   sharedEmojis: string[];
-  matchingGmStreak: boolean;
 }
 
 /**
@@ -162,16 +159,6 @@ function tokenizeText(text: string): string[] {
 }
 
 /**
- * Calculate consecutive days with 'gm' casts (simplified: just count gm occurrences)
- */
-function calculateGmStreak(casts: CastData[]): number {
-  const gmCount = casts.filter(cast => 
-    /\bgm\b/i.test(cast.text)
-  ).length;
-  return gmCount;
-}
-
-/**
  * Process casts into tokenized data
  */
 export function preprocessCasts(casts: CastData[]): TokenizedData {
@@ -189,7 +176,6 @@ export function preprocessCasts(casts: CastData[]): TokenizedData {
     words: new Set(allWords),
     hashtags: new Set(allHashtags),
     emojis: new Set(allEmojis),
-    gmStreak: calculateGmStreak(casts),
   };
 }
 
@@ -219,7 +205,7 @@ function overlapCoefficient(setA: Set<string>, setB: Set<string>): number {
 
 /**
  * Calculate final similarity score using weighted formula
- * Score = 0.6·text Jaccard + 0.25·hashtag overlap + 0.15·emoji overlap + bonus for matching gm streak
+ * Score = 0.6·text Jaccard + 0.25·hashtag overlap + 0.15·emoji overlap
  */
 export function calculateSimilarity(
   userTokens: TokenizedData,
@@ -230,17 +216,10 @@ export function calculateSimilarity(
   const hashtagOverlap = overlapCoefficient(userTokens.hashtags, candidateTokens.hashtags);
   const emojiOverlap = overlapCoefficient(userTokens.emojis, candidateTokens.emojis);
   
-  // GM bonus: if both have gm streaks, add bonus proportional to min streak
-  const matchingGmStreak = userTokens.gmStreak > 0 && candidateTokens.gmStreak > 0;
-  const gmBonus = matchingGmStreak 
-    ? Math.min(userTokens.gmStreak, candidateTokens.gmStreak) * 0.02 
-    : 0;
-  
   const similarity = 
     0.6 * textJaccard + 
     0.25 * hashtagOverlap + 
-    0.15 * emojiOverlap + 
-    gmBonus;
+    0.15 * emojiOverlap;
 
   // Get shared items for display
   const sharedHashtags = [...userTokens.hashtags].filter(h => candidateTokens.hashtags.has(h));
@@ -255,10 +234,8 @@ export function calculateSimilarity(
     textJaccard,
     hashtagOverlap,
     emojiOverlap,
-    gmBonus,
     sharedHashtags: sharedHashtags.slice(0, 5), // Top 5
     sharedEmojis: sharedEmojis.slice(0, 5), // Top 5
-    matchingGmStreak,
   };
 }
 
