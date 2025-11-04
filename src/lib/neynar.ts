@@ -1,8 +1,9 @@
 import { CastData } from './similarity';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+// 프로덕션에서는 상대 경로 사용, 개발 모드에서는 환경 변수 또는 빈 문자열
+const API_BASE = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? '' : '');
 const NEYNAR_API_KEY = import.meta.env.VITE_NEYNAR_API_KEY || '';
-const USE_DIRECT_API = import.meta.env.DEV; // 개발 모드에서는 직접 호출
+const USE_DIRECT_API = import.meta.env.DEV && !!NEYNAR_API_KEY; // 개발 모드이고 API 키가 있을 때만 직접 호출
 
 export interface UserInfo {
   fid: number;
@@ -61,8 +62,11 @@ export async function getUserByUsername(username: string): Promise<UserInfo | nu
       return user;
     }
     
-    // 프로덕션에서는 프록시 사용
-    const response = await fetch(`${API_BASE}/api/neynar-proxy?endpoint=user&username=${cleanUsername}`);
+    // 프로덕션에서는 프록시 사용 (상대 경로 사용)
+    const proxyUrl = API_BASE 
+      ? `${API_BASE}/api/neynar-proxy?endpoint=user&username=${cleanUsername}`
+      : `/api/neynar-proxy?endpoint=user&username=${cleanUsername}`;
+    const response = await fetch(proxyUrl);
     
     if (!response.ok) {
       console.error('Failed to fetch user:', await response.text());
@@ -139,7 +143,10 @@ export async function getFollowers(fid: number, limit: number = 100): Promise<Fo
       }) || [];
     }
     
-    const response = await fetch(`${API_BASE}/api/neynar-proxy?endpoint=followers&fid=${fid}&limit=${limit}`);
+    const proxyUrl = API_BASE 
+      ? `${API_BASE}/api/neynar-proxy?endpoint=followers&fid=${fid}&limit=${limit}`
+      : `/api/neynar-proxy?endpoint=followers&fid=${fid}&limit=${limit}`;
+    const response = await fetch(proxyUrl);
     
     if (!response.ok) {
       console.error('Failed to fetch followers:', await response.text());
@@ -223,7 +230,10 @@ export async function getFollowing(fid: number, limit: number = 100): Promise<Fo
       }) || [];
     }
     
-    const response = await fetch(`${API_BASE}/api/neynar-proxy?endpoint=following&fid=${fid}&limit=${limit}`);
+    const proxyUrl = API_BASE 
+      ? `${API_BASE}/api/neynar-proxy?endpoint=following&fid=${fid}&limit=${limit}`
+      : `/api/neynar-proxy?endpoint=following&fid=${fid}&limit=${limit}`;
+    const response = await fetch(proxyUrl);
     
     if (!response.ok) {
       console.error('Failed to fetch following:', await response.text());
@@ -284,7 +294,10 @@ export async function getRecentCasts(fid: number, limit: number = 25): Promise<C
       })) || [];
     }
     
-    const response = await fetch(`${API_BASE}/api/neynar-proxy?endpoint=casts&fid=${fid}&limit=${limit}`);
+    const proxyUrl = API_BASE 
+      ? `${API_BASE}/api/neynar-proxy?endpoint=casts&fid=${fid}&limit=${limit}`
+      : `/api/neynar-proxy?endpoint=casts&fid=${fid}&limit=${limit}`;
+    const response = await fetch(proxyUrl);
     
     if (!response.ok) {
       console.error('Failed to fetch casts:', await response.text());
