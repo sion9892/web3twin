@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { uploadJSONToIPFS, uploadSVGToIPFS } from './ipfs-upload';
+import { uploadJSONToIPFS, uploadSVGToIPFS, PINATA_GATEWAY } from './ipfs-upload';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS headers
@@ -42,8 +42,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({
       svgIpfsUrl,
       metadataIpfsUrl,
-      imageUrl: svgIpfsUrl.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/'),
-      metadataUrl: metadataIpfsUrl.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/'),
+      imageUrl: svgIpfsUrl.replace('ipfs://', PINATA_GATEWAY),
+      metadataUrl: metadataIpfsUrl.replace('ipfs://', PINATA_GATEWAY),
     });
   } catch (error: any) {
     console.error('Error uploading to IPFS:', error);

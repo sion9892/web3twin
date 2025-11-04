@@ -165,7 +165,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         console.log(`🔍 Proxy returning ${users.length} users`);
         if (users.length > 0) {
           console.log(`🔍 First user pfp_url:`, users[0]?.pfp_url);
-          console.log(`🔍 Users with pfp_url:`, users.filter(u => u.pfp_url).length);
+          console.log(`🔍 Users with pfp_url:`, users.filter((u: { pfp_url?: string }) => u.pfp_url).length);
         }
         
         return res.status(200).json({
