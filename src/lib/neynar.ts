@@ -58,6 +58,12 @@ export async function getUserByUsername(username: string): Promise<UserInfo | nu
         following_count: data.user?.following_count || data.result?.user?.following_count,
       };
       
+      // Validate that user has required fid
+      if (!user.fid || typeof user.fid !== 'number' || user.fid <= 0) {
+        console.warn(`Invalid user data for ${cleanUsername}:`, user);
+        return null;
+      }
+      
       console.log('Parsed user:', user); // 디버깅용
       return user;
     }
@@ -74,7 +80,15 @@ export async function getUserByUsername(username: string): Promise<UserInfo | nu
     }
     
     const data = await response.json();
-    return data.user;
+    const user = data.user;
+    
+    // Validate that user has required fid
+    if (!user || !user.fid || typeof user.fid !== 'number' || user.fid <= 0) {
+      console.warn(`Invalid user data for ${cleanUsername}:`, user);
+      return null;
+    }
+    
+    return user;
   } catch (error) {
     console.error('Error fetching user:', error);
     return null;
