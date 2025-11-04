@@ -70,7 +70,7 @@ export default function Step2Preview({ userInfo, onComplete }: Step2PreviewProps
         for (const username of filteredMentions.slice(0, 50)) { // Limit to 50 mentions
           try {
             const mentionedUser = await getUserByUsername(username);
-            if (mentionedUser && mentionedUser.fid !== userInfo.fid) {
+            if (mentionedUser && mentionedUser.fid && typeof mentionedUser.fid === 'number' && mentionedUser.fid > 0 && mentionedUser.fid !== userInfo.fid) {
               allCandidates.push({
                 fid: mentionedUser.fid,
                 username: mentionedUser.username,

@@ -291,6 +291,12 @@ export async function getFollowing(fid: number, limit: number = 100): Promise<Fo
  * Get recent casts for a given FID
  */
 export async function getRecentCasts(fid: number, limit: number = 25): Promise<CastData[]> {
+  // Validate fid
+  if (!fid || typeof fid !== 'number' || fid <= 0 || !Number.isInteger(fid)) {
+    console.error('Invalid fid:', fid);
+    return [];
+  }
+  
   try {
     if (USE_DIRECT_API && NEYNAR_API_KEY) {
       const response = await fetch(

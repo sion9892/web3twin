@@ -84,7 +84,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (!queryParams.fid || typeof queryParams.fid !== 'string') {
           return res.status(400).json({ error: 'Missing fid parameter' });
         }
-        params.append('fid', queryParams.fid);
+        const fid = parseInt(queryParams.fid, 10);
+        if (isNaN(fid) || fid <= 0) {
+          return res.status(400).json({ error: 'fid must be a positive integer' });
+        }
+        params.append('fid', fid.toString());
         params.append('limit', (queryParams.limit as string) || '25');
         // Use /feed/user/casts endpoint (free tier compatible)
         neynarUrl = `${NEYNAR_BASE_URL}/feed/user/casts?${params}`;
