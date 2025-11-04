@@ -58,6 +58,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
         params.append('fid', queryParams.fid);
         params.append('limit', (queryParams.limit as string) || '100');
+        // viewer_fid를 추가하여 더 많은 정보를 받아올 수 있도록 함
+        if (queryParams.viewer_fid) {
+          params.append('viewer_fid', queryParams.viewer_fid as string);
+        }
         neynarUrl = `${NEYNAR_BASE_URL}/followers?${params}`;
         break;
       }
@@ -68,6 +72,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
         params.append('fid', queryParams.fid);
         params.append('limit', (queryParams.limit as string) || '100');
+        // viewer_fid를 추가하여 더 많은 정보를 받아올 수 있도록 함
+        if (queryParams.viewer_fid) {
+          params.append('viewer_fid', queryParams.viewer_fid as string);
+        }
         neynarUrl = `${NEYNAR_BASE_URL}/following?${params}`;
         break;
       }
@@ -104,6 +112,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const data = await response.json();
 
+    // Debug: Log full API response for followers/following
+    if (endpoint === 'followers' || endpoint === 'following') {
+      console.log(`🔍 Neynar ${endpoint} API response sample:`, JSON.stringify(data.result?.users?.[0], null, 2));
+    }
+
     // Transform response based on endpoint
     switch (endpoint) {
       case 'user': {
@@ -121,13 +134,42 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       case 'followers':
       case 'following': {
-        return res.status(200).json({
-          users: data.result?.users?.map((user: any) => ({
+        const users = data.result?.users?.map((user: any) => {
+          // pfp 객체를 우선적으로 활용 (pfp?.url → pfp_url → pfpUrl 순서)
+          const pfpUrl = user.pfp?.url || user.pfp_url || user.pfpUrl || '';
+          
+          // pfp 객체 확인
+          if (user.pfp) {
+            console.log(`🔍 Proxy User ${user.username} has pfp object:`, JSON.stringify(user.pfp, null, 2));
+            console.log(`🔍 Using pfp.url: ${user.pfp?.url || '없음'}`);
+          }
+          
+          // 디버깅: 실제 user 객체의 모든 필드 확인
+          if (!pfpUrl) {
+            console.log(`⚠️ User ${user.username} has no pfp_url. Available fields:`, Object.keys(user));
+            console.log(`⚠️ User object:`, JSON.stringify(user, null, 2));
+            if (user.pfp) {
+              console.log(`⚠️ But has pfp object:`, user.pfp);
+            }
+          }
+          
+          return {
             fid: user.fid,
             username: user.username,
             display_name: user.display_name,
-            pfp_url: user.pfp_url,
-          })) || [],
+            pfp_url: pfpUrl,
+            pfp: user.pfp, // pfp 객체 전체도 반환
+          };
+        }) || [];
+        
+        console.log(`🔍 Proxy returning ${users.length} users`);
+        if (users.length > 0) {
+          console.log(`🔍 First user pfp_url:`, users[0]?.pfp_url);
+          console.log(`🔍 Users with pfp_url:`, users.filter(u => u.pfp_url).length);
+        }
+        
+        return res.status(200).json({
+          users,
         });
       }
 

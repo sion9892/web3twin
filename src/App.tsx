@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
+import CustomWalletButton from './components/CustomWalletButton';
 import Step1Handle from './components/Step1Handle';
 import Step2Preview from './components/Step2Preview';
 import Step3Result from './components/Step3Result';
@@ -95,11 +95,7 @@ function App() {
       <nav className="navbar">
         <div className="navbar-content">
           <h1 className="navbar-title">Web3Twin</h1>
-          <ConnectButton 
-            showBalance={false}
-            chainStatus="icon"
-            accountStatus="address"
-          />
+          <CustomWalletButton />
         </div>
       </nav>
 
@@ -181,7 +177,7 @@ function App() {
                     rel="noopener noreferrer"
                     className="primary-button"
                   >
-                    Cast on Warpcast
+                    Cast on Farcaster
                   </a>
                   <button
                     onClick={() => {

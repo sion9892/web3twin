@@ -117,6 +117,19 @@ export default function Step2Preview({ userInfo, onComplete }: Step2PreviewProps
       
       for (let i = 0; i < sampledCandidates.length; i++) {
         const candidate = sampledCandidates[i];
+        // 디버깅: candidate의 pfp_url 및 pfp 객체 확인
+        if (i === 0) {
+          console.log('🔍 First candidate data:', {
+            fid: candidate.fid,
+            username: candidate.username,
+            display_name: candidate.display_name,
+            pfp_url: candidate.pfp_url,
+            pfp: candidate.pfp,
+            pfpUrlFromPfp: candidate.pfp?.url,
+            hasPfpUrl: !!candidate.pfp_url && candidate.pfp_url.trim() !== ''
+          });
+        }
+        
         const candidateCasts = await getRecentCasts(candidate.fid, CAST_LIMIT);
         
         if (candidateCasts.length > 0) {
@@ -130,6 +143,16 @@ export default function Step2Preview({ userInfo, onComplete }: Step2PreviewProps
         
         // Update progress
         setProgress(50 + ((i + 1) / sampledCandidates.length) * 45);
+      }
+      
+      // 디버깅: candidatesWithData의 첫 번째 항목 확인
+      if (candidatesWithData.length > 0) {
+        console.log('🔍 First candidateWithData:', {
+          fid: candidatesWithData[0].info.fid,
+          username: candidatesWithData[0].info.username,
+          pfp_url: candidatesWithData[0].info.pfp_url,
+          hasPfpUrl: !!candidatesWithData[0].info.pfp_url && candidatesWithData[0].info.pfp_url.trim() !== ''
+        });
       }
 
       setProgress(100);
@@ -205,4 +228,3 @@ export default function Step2Preview({ userInfo, onComplete }: Step2PreviewProps
     </div>
   );
 }
-

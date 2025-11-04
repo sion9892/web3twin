@@ -49,7 +49,7 @@ export default function TransferNFT({ tokenId, onTransferComplete }: TransferNFT
         <div className="success-icon">✅</div>
         <p>NFT transferred successfully!</p>
         <p className="success-details">
-          Web3Twin #{tokenId} has been sent to {recipientAddress.slice(0, 6)}...{recipientAddress.slice(-4)}
+          NFT #{tokenId} has been sent to {recipientAddress.slice(0, 6)}...{recipientAddress.slice(-4)}
         </p>
       </div>
     );
@@ -66,7 +66,7 @@ export default function TransferNFT({ tokenId, onTransferComplete }: TransferNFT
 
       {showTransferForm && (
         <div className="transfer-form">
-          <h4>Transfer Web3Twin #{tokenId}</h4>
+          <h4>Transfer NFT #{tokenId}</h4>
           
           <div className="input-group">
             <label htmlFor="recipient">Recipient Address:</label>

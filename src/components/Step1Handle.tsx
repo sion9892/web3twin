@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { getUserByUsername, type UserInfo } from '../lib/neynar';
-import { validateHandle, handleApiError, type Web3TwinError } from '../lib/errorHandler';
+import { validateHandle, handleApiError } from '../lib/errorHandler';
 
 interface Step1HandleProps {
   onComplete: (userInfo: UserInfo) => void;
@@ -45,6 +45,7 @@ export default function Step1Handle({ onComplete }: Step1HandleProps) {
     <div className="step-container">
       <div className="step-content">
         <h2 className="step-title">Find Your Web3 Twin</h2>
+        
         <p className="step-description">
           Enter your Farcaster handle to analyze your recent casts and find users with a similar vibe.
         </p>

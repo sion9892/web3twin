@@ -3,11 +3,14 @@ import { useAccount, useChainId } from 'wagmi';
 import { findBestTwin, type TokenizedData, type SimilarityResult, type CastData } from '../lib/similarity';
 import { useMintNFT } from '../hooks/useMintNFT';
 import { useUserNFTs } from '../hooks/useUserNFTs';
-import { handleBlockchainError } from '../lib/errorHandler';
+import { useTransferNFT } from '../hooks/useTransferNFT';
 import type { FollowerData } from '../lib/neynar';
+import { generateNFTSVG } from '../lib/generateNFTSVG';
+import NFTSuccessModal from './NFTSuccessModal';
+import NFTTransferModal from './NFTTransferModal';
 
 interface Step3ResultProps {
-  userInfo: { username: string; fid: number };
+  userInfo: { username: string; fid: number; pfp_url?: string };
   userTokens: TokenizedData;
   candidates: Array<{
     info: FollowerData;
@@ -15,7 +18,6 @@ interface Step3ResultProps {
     tokens: TokenizedData;
   }>;
   onShare: (result: SimilarityResult) => void;
-  onFindAgain: () => void;
 }
 
 export default function Step3Result({
@@ -23,17 +25,19 @@ export default function Step3Result({
   userTokens,
   candidates,
   onShare,
-  onFindAgain,
 }: Step3ResultProps) {
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
-  const { mintNFT, isPending, isConfirming, isConfirmed, hash, error: mintContractError } = useMintNFT();
-  const { refetchTokens } = useUserNFTs();
+  const { mintNFT, isPending, isConfirming, isConfirmed, hash, error: mintContractError, mintedTokenId } = useMintNFT();
+  const { tokenIds, refetchTokens } = useUserNFTs();
+  const { transferNFT: transferNFTHook, isPending: isTransferPending, isConfirming: isTransferConfirming, isConfirmed: isTransferConfirmed } = useTransferNFT();
   const [result, setResult] = useState<SimilarityResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [minting, setMinting] = useState(false);
-  const [mintError, setMintError] = useState<string | null>(null);
   const [showNFTModal, setShowNFTModal] = useState(false);
+  const [hasError, setHasError] = useState(false);
+  const [showTransferModal, setShowTransferModal] = useState(false);
+  const [transferring, setTransferring] = useState(false);
 
   useEffect(() => {
     calculateMatch();
@@ -49,11 +53,46 @@ export default function Step3Result({
         fid: c.info.fid,
         username: c.info.username,
         displayName: c.info.display_name,
-        pfpUrl: c.info.pfp_url,
+        // pfp 객체를 우선적으로 활용 (pfp?.url → pfp_url 순서)
+        pfpUrl: (c.info.pfp?.url || c.info.pfp_url || '').trim(),
       },
     }));
 
+    // Debug: Log candidate info to check pfp_url and pfp object
+    console.log('🔍 Checking candidates for pfp:', formattedCandidates.map(c => ({
+      username: c.info.username,
+      pfpUrl: c.info.pfpUrl,
+      hasPfpUrl: !!c.info.pfpUrl && c.info.pfpUrl.trim() !== '',
+      pfpObject: candidates.find(cand => cand.info.username === c.info.username)?.info.pfp,
+    })));
+
     const bestMatch = findBestTwin(userTokens, formattedCandidates);
+    
+    // Debug: Log the best match result
+    if (bestMatch) {
+      console.log('✅ Best match found:', {
+        username: bestMatch.username,
+        pfpUrl: bestMatch.pfpUrl,
+        hasPfpUrl: !!bestMatch.pfpUrl && bestMatch.pfpUrl.trim() !== '',
+        pfpUrlLength: bestMatch.pfpUrl?.length || 0,
+        pfpUrlType: typeof bestMatch.pfpUrl,
+        pfpUrlValue: bestMatch.pfpUrl
+      });
+      
+      // Check the original candidate's pfp data
+      const originalCandidate = candidates.find(c => c.info.username === bestMatch.username);
+      if (originalCandidate) {
+        console.log('🔍 Original candidate pfp data:', {
+          pfp_url: originalCandidate.info.pfp_url,
+          pfp: originalCandidate.info.pfp,
+          pfp_url_type: typeof originalCandidate.info.pfp_url,
+          pfp_url_length: originalCandidate.info.pfp_url?.length || 0,
+          pfp_object: originalCandidate.info.pfp,
+          hasPfpObject: !!originalCandidate.info.pfp
+        });
+      }
+    }
+    
     setResult(bestMatch);
     setLoading(false);
   };
@@ -61,25 +100,24 @@ export default function Step3Result({
   const handleMintNFT = async () => {
     if (!result || !address) {
       console.error('Missing result or address:', { result, address });
-      setMintError('Missing required data. Please try again.');
       return;
     }
     
     console.log('🚀 Starting NFT mint...', { address, result, userInfo });
     console.log('Current chain ID:', chainId);
     setMinting(true);
-    setMintError(null);
+    setHasError(false);
     
     try {
-      // Check if connected to correct network (Base Sepolia testnet)
-      if (chainId !== 84532) {
-        console.error('❌ Wrong network! Expected Base Sepolia (84532), got:', chainId);
-        setMintError(`Wrong network! Please switch to Base Sepolia (Chain ID: 84532). Current: ${chainId}`);
+      // Check if connected to correct network (Base mainnet)
+      if (chainId !== 8453) {
+        console.error('❌ Wrong network! Expected Base (8453), got:', chainId);
         setMinting(false);
+        setHasError(true);
         return;
       }
       
-      console.log('✅ Network check passed: Base Sepolia');
+      console.log('✅ Network check passed: Base');
       
       // Mint the NFT
       console.log('📝 Calling mintNFT with params:', {
@@ -90,7 +128,7 @@ export default function Step3Result({
         username: userInfo.username
       });
       
-      await mintNFT(address, address, result, userInfo.username);
+      await mintNFT(address, address, result, userInfo.username, userInfo.pfp_url);
       console.log('✅ mintNFT call completed successfully');
       
     } catch (err: any) {
@@ -100,9 +138,8 @@ export default function Step3Result({
       console.error('Error code:', err?.code);
       console.error('Full error:', JSON.stringify(err, null, 2));
       
-      const appError = handleBlockchainError(err, 'mintNFT');
-      setMintError(`${appError.message}\n\nDetails: ${err?.message || 'Unknown error'}`);
       setMinting(false);
+      setHasError(true);
     }
   };
 
@@ -115,17 +152,71 @@ export default function Step3Result({
       refetchTokens();
       setShowNFTModal(true);
       setMinting(false);
+      
+      // NFT is already minted to the connected address, so no transfer needed
+      // Transfer modal is available as an option in the success modal if needed
     }
-  }, [isConfirmed, minting, isPending, isConfirming, refetchTokens]);
+  }, [isConfirmed, minting, isPending, isConfirming, refetchTokens, mintedTokenId, address]);
+
+  // Handle transfer confirmation
+  useEffect(() => {
+    if (isTransferConfirmed && transferring) {
+      console.log('✅ Transfer confirmed!');
+      setTransferring(false);
+      setShowTransferModal(false);
+      
+      // Refetch tokens after a short delay to ensure blockchain state is updated
+      setTimeout(() => {
+        console.log('🔄 Refetching tokens after transfer...');
+        refetchTokens();
+      }, 2000);
+    }
+  }, [isTransferConfirmed, transferring, refetchTokens]);
 
   // Handle contract errors
   useEffect(() => {
     if (mintContractError && minting) {
       console.error('❌ Contract error detected:', mintContractError);
-      setMintError(`Transaction failed: ${mintContractError.message || 'Unknown error'}`);
+      
       setMinting(false);
+      setHasError(true);
     }
   }, [mintContractError, minting]);
+
+  const handleTransferNFT = async () => {
+    // Use mintedTokenId if available, otherwise use the latest tokenId
+    const tokenIdToTransfer = mintedTokenId ?? 
+      (tokenIds && tokenIds.length > 0 
+        ? Number(tokenIds[tokenIds.length - 1]) 
+        : null);
+    
+    if (!tokenIdToTransfer || !address) {
+      console.error('Missing tokenId or address for transfer');
+      return;
+    }
+
+    console.log('🔄 Transfer NFT Debug:', {
+      tokenId: tokenIdToTransfer,
+      fromAddress: address,
+      toAddress: address,
+      note: 'Transferring to same address (Smart Wallet)'
+    });
+
+    setTransferring(true);
+    
+    try {
+      // Transfer from mint address to Smart Wallet address
+      // Note: If address is already Smart Wallet, this is still a valid operation
+      // that can help Base App recognize the NFT
+      await transferNFTHook(address, address, tokenIdToTransfer);
+      console.log('✅ Transfer transaction sent');
+      console.log('💡 Note: After transfer completes, Base App should recognize the NFT');
+    } catch (err: any) {
+      console.error('❌ Error transferring NFT:', err);
+      setTransferring(false);
+      setHasError(true);
+    }
+  };
 
   if (loading) {
     return (
@@ -148,9 +239,6 @@ export default function Step3Result({
           <p className="error-message">
             We couldn't find a suitable match. Try again with a different handle.
           </p>
-          <button onClick={onFindAgain} className="primary-button">
-            Find Again
-          </button>
         </div>
       </div>
     );
@@ -159,109 +247,86 @@ export default function Step3Result({
   return (
     <div className="step-container">
       <div className="step-content">
-        <h2 className="step-title">Meet Your Twin! 🎭</h2>
+        <h2 className="step-title">Meet Your Twin!</h2>
 
         <div className="twin-card">
           <div className="twin-header">
             <div className="twin-info">
               <h3 className="twin-name">{result.displayName}</h3>
               <p className="twin-username">@{result.username}</p>
+              <a
+                href={`https://warpcast.com/${result.username}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'inline-block',
+                  marginTop: '0.5rem',
+                  fontSize: '0.875rem',
+                  color: '#8b5cf6',
+                  textDecoration: 'none',
+                  padding: '0.375rem 0.75rem',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '0.5rem',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = '#8b5cf6';
+                  e.currentTarget.style.backgroundColor = '#f5f3ff';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = '#e5e7eb';
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
+              >
+                View Your Twin on Farcaster
+              </a>
             </div>
           </div>
 
-          <div className="similarity-score">
-            <div className="score-circle">
-              <svg className="score-ring" viewBox="0 0 120 120">
-                <circle 
-                  cx="60" 
-                  cy="60" 
-                  r="54" 
-                  fill="none" 
-                  stroke="#e5e7eb" 
-                  strokeWidth="12"
-                />
-                <circle 
-                  cx="60" 
-                  cy="60" 
-                  r="54" 
-                  fill="none" 
-                  stroke="#8b5cf6" 
-                  strokeWidth="12"
-                  strokeDasharray={`${2 * Math.PI * 54}`}
-                  strokeDashoffset={`${2 * Math.PI * 54 * (1 - result.similarity / 100)}`}
-                  strokeLinecap="round"
-                  transform="rotate(-90 60 60)"
-                />
-              </svg>
-              <div className="score-text">
-                <span className="score-value">{result.similarity.toFixed(1)}%</span>
-                <span className="score-label">Match</span>
-              </div>
+          {/* NFT Design Display */}
+          <div style={{ marginBottom: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <div style={{ width: '400px', height: '400px', border: '2px solid #e5e7eb', borderRadius: '10px', overflow: 'hidden' }}>
+              <div 
+                dangerouslySetInnerHTML={{ 
+                  __html: generateNFTSVG({
+                    user1Username: userInfo.username,
+                    user2Username: result.username,
+                    user1PfpUrl: userInfo.pfp_url,
+                    user2PfpUrl: result.pfpUrl,
+                    similarity: result.similarity,
+                    textJaccard: result.textJaccard,
+                    hashtagOverlap: result.hashtagOverlap,
+                    emojiOverlap: result.emojiOverlap,
+                  })
+                }}
+              />
             </div>
-          </div>
-
-          <div className="signals-grid">
-            {result.sharedHashtags.length > 0 && (
-              <div className="signal-card">
-                <h4 className="signal-title">Shared Hashtags</h4>
-                <div className="signal-items">
-                  {result.sharedHashtags.map((tag, idx) => (
-                    <span key={idx} className="signal-tag hashtag">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-
-            {result.matchingGmStreak && (
-              <div className="signal-card special">
-                <h4 className="signal-title">✨ GM Vibes Match!</h4>
-                <p className="signal-description">
-                  You both spread good morning energy! 🌅
-                </p>
-              </div>
-            )}
-          </div>
-
-          <div className="score-breakdown">
-            <h4 className="breakdown-title">Match Breakdown</h4>
-            <div className="breakdown-items">
-              <div className="breakdown-item">
-                <span className="breakdown-label">Text Similarity</span>
-                <span className="breakdown-value">{(result.textJaccard * 100).toFixed(1)}%</span>
-              </div>
-              <div className="breakdown-item">
-                <span className="breakdown-label">Hashtag Overlap</span>
-                <span className="breakdown-value">{(result.hashtagOverlap * 100).toFixed(1)}%</span>
-              </div>
-              <div className="breakdown-item">
-                <span className="breakdown-label">Emoji Overlap</span>
-                <span className="breakdown-value">{(result.emojiOverlap * 100).toFixed(1)}%</span>
-              </div>
-              {result.gmBonus > 0 && (
-                <div className="breakdown-item bonus">
-                  <span className="breakdown-label">GM Bonus</span>
-                  <span className="breakdown-value">+{(result.gmBonus * 100).toFixed(1)}%</span>
-                </div>
-              )}
-            </div>
+            <p style={{ 
+              marginTop: '0.5rem', 
+              fontSize: '0.875rem', 
+              color: '#6b7280',
+              textAlign: 'center'
+            }}>
+              This is your NFT design
+            </p>
           </div>
         </div>
 
         <div className="action-buttons">
-          <button 
-            onClick={() => onShare(result)}
-            className="primary-button"
-          >
-            Share as Cast
-          </button>
-          
           {isConnected && address && (
             <>
               <button 
-                onClick={handleMintNFT}
+              onClick={async () => {
+                if (isConfirmed) {
+                  // 이미 mint된 경우 모달만 열기 (추가 fee 없음)
+                  // 최신 tokenId를 가져오기 위해 refetch
+                  await refetchTokens();
+                  setShowNFTModal(true);
+                } else {
+                  // 아직 mint하지 않은 경우 mint 실행
+                  handleMintNFT();
+                }
+              }}
                 className="primary-button cat-mint-button"
                 disabled={minting || isPending || isConfirming}
               >
@@ -270,8 +335,8 @@ export default function Step3Result({
                   : isConfirming 
                   ? '⏳ Confirming...' 
                   : isConfirmed 
-                  ? '🎉 Twin Cat Adopted! 😻' 
-                  : '🐱 Adopt Your Twin Cat NFT ✨'
+                  ? '🎉 Starry Night NFT Minted! ✨' 
+                  : 'Get Your Starry Night NFT'
                 }
               </button>
               
@@ -284,195 +349,96 @@ export default function Step3Result({
                   </p>
                 </div>
               )}
-              {mintError && (
-                <div className="error-message" style={{ whiteSpace: 'pre-wrap', textAlign: 'left' }}>
-                  <strong>❌ Error:</strong>
-                  <div style={{ marginTop: '0.5rem', padding: '0.75rem', background: '#fee', borderRadius: '4px', fontSize: '0.9rem' }}>
-                    {mintError}
-                  </div>
-                  {mintError.includes('Base Sepolia') && (
-                    <div style={{ marginTop: '1rem', background: '#fef3c7', padding: '1rem', borderRadius: '8px' }}>
-                      <p><strong>🔧 지갑에서 Base Sepolia 네트워크로 변경해주세요:</strong></p>
-                      <ul style={{ textAlign: 'left', marginTop: '0.5rem', marginLeft: '1.5rem' }}>
-                        <li>Network Name: Base Sepolia</li>
-                        <li>RPC URL: https://sepolia.base.org</li>
-                        <li>Chain ID: 84532</li>
-                        <li>Currency Symbol: ETH</li>
-                        <li>Block Explorer: https://sepolia.basescan.org</li>
-                      </ul>
-                      <p style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
-                        💡 Base Sepolia는 테스트넷으로 무료 ETH를 받을 수 있습니다.
-                      </p>
-                    </div>
-                  )}
-                  {mintError.includes('insufficient funds') && (
-                    <div style={{ marginTop: '1rem', background: '#dbeafe', padding: '1rem', borderRadius: '8px' }}>
-                      <p><strong>💰 가스비 부족:</strong></p>
-                      <p style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
-                        지갑에 Base Sepolia ETH가 필요합니다. 
-                        <a href="https://www.coinbase.com/faucets/base-ethereum-goerli-faucet" target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', textDecoration: 'underline', marginLeft: '0.25rem' }}>
-                          Faucet에서 받기 →
-                        </a>
-                      </p>
-                    </div>
-                  )}
+              
+              {hasError && (
+                <div style={{ 
+                  padding: '1rem', 
+                  background: '#fee2e2', 
+                  borderRadius: '8px', 
+                  fontSize: '1rem',
+                  textAlign: 'center',
+                  border: '1px solid #fca5a5',
+                  color: '#991b1b',
+                  marginTop: '1rem'
+                }}>
+                  <p style={{ margin: 0 }}>
+                    An error occurred. Please try again later.
+                  </p>
                 </div>
               )}
+              
               <div className="info-card">
                 <p>
-                  <strong>💰 Low Cost Minting!</strong> Base 네트워크에서는 가스비가 매우 저렴합니다 (약 $0.001).
+                  <strong>💰 Low Cost Minting!</strong>
                   <br />
-                  <small>💡 Base는 Ethereum Layer 2로 가스비가 100배 이상 저렴합니다.</small>
+                  Web3Twin NFTs are stored entirely on-chain, which may result in gas fees of approximately $0.5-$1.5.
+                  <br />
+                  <small>💡 Base is an Ethereum Layer 2 network with gas fees that are 100x cheaper.</small>
                 </p>
               </div>
             </>
           )}
           
           <button 
-            onClick={onFindAgain}
-            className="secondary-button"
+            onClick={() => onShare(result)}
+            style={{
+              backgroundColor: 'white',
+              color: '#8b5cf6',
+              border: '1px solid #e5e7eb',
+              padding: '0.75rem 1.5rem',
+              borderRadius: '0.5rem',
+              fontSize: '1rem',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#8b5cf6';
+              e.currentTarget.style.color = 'white';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'white';
+              e.currentTarget.style.color = '#8b5cf6';
+            }}
           >
-            Find Again
+            Share as Cast →
           </button>
-          <a
-            href={`https://warpcast.com/${result.username}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="link-button"
-          >
-            View on Warpcast →
-          </a>
         </div>
 
         {/* NFT Success Modal */}
-        {showNFTModal && (
-          <div className="modal-overlay" onClick={() => setShowNFTModal(false)}>
-            <div className="modal-content nft-modal" onClick={(e) => e.stopPropagation()}>
-              <button 
-                className="modal-close"
-                onClick={() => setShowNFTModal(false)}
-              >
-                ✕
-              </button>
-              
-              <h2 style={{ marginBottom: '1.5rem', fontSize: '1.8rem' }}>
-                🎉 Twin Cat NFT Minted! 😻
-              </h2>
-              
-              <div className="nft-preview">
-                <div style={{ 
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  padding: '2rem',
-                  borderRadius: '12px',
-                  marginBottom: '1.5rem'
-                }}>
-                  <div style={{ 
-                    fontSize: '4rem',
-                    textAlign: 'center',
-                    marginBottom: '1rem'
-                  }}>
-                    🐱✨
-                  </div>
-                  
-                  {/* Twin Names with styled separator */}
-                  <div style={{ 
-                    textAlign: 'center',
-                    marginBottom: '1rem'
-                  }}>
-                    <div style={{
-                      color: '#FFD700',
-                      fontSize: '1.3rem',
-                      fontWeight: 'bold',
-                      textShadow: '0 2px 4px rgba(0,0,0,0.3)',
-                      marginBottom: '0.5rem'
-                    }}>
-                      @{userInfo.username}
-                    </div>
-                    <div style={{
-                      color: 'white',
-                      fontSize: '1.8rem',
-                      fontWeight: 'bold',
-                      margin: '0.25rem 0'
-                    }}>
-                      ×
-                    </div>
-                    <div style={{
-                      color: '#FF69B4',
-                      fontSize: '1.3rem',
-                      fontWeight: 'bold',
-                      textShadow: '0 2px 4px rgba(0,0,0,0.3)',
-                      marginTop: '0.5rem'
-                    }}>
-                      @{result.username}
-                    </div>
-                  </div>
-                  
-                  <div style={{ 
-                    color: 'white',
-                    textAlign: 'center',
-                    fontSize: '2rem',
-                    fontWeight: 'bold',
-                    marginTop: '1rem',
-                    textShadow: '0 2px 8px rgba(0,0,0,0.4)'
-                  }}>
-                    {result.similarity.toFixed(1)}% Match
-                  </div>
-                </div>
-                
-                <div style={{ marginBottom: '1rem' }}>
-                  <p style={{ marginBottom: '0.5rem', color: '#666' }}>
-                    <strong>Transaction Hash:</strong>
-                  </p>
-                  <a
-                    href={`https://sepolia.basescan.org/tx/${hash}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ 
-                      fontSize: '0.9rem',
-                      wordBreak: 'break-all',
-                      color: '#8b5cf6',
-                      textDecoration: 'underline'
-                    }}
-                  >
-                    {hash}
-                  </a>
-                </div>
-                
-                <div style={{ 
-                  background: '#f3f4f6',
-                  padding: '1rem',
-                  borderRadius: '8px',
-                  marginBottom: '1rem'
-                }}>
-                  <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '0.5rem' }}>
-                    ✅ Your Twin Cat NFT has been minted on Base Sepolia!
-                  </p>
-                  <p style={{ fontSize: '0.85rem', color: '#999' }}>
-                    You can now transfer it or view it on blockchain explorers.
-                  </p>
-                </div>
-                
-                <div style={{ display: 'flex', gap: '1rem', flexDirection: 'column' }}>
-                  <a
-                    href={`https://sepolia.basescan.org/tx/${hash}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="primary-button"
-                  >
-                    🔍 View on Basescan
-                  </a>
-                  
-                  <button 
-                    onClick={() => setShowNFTModal(false)}
-                    className="primary-button"
-                  >
-                    Close
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        <NFTSuccessModal
+          isOpen={showNFTModal}
+          onClose={() => setShowNFTModal(false)}
+          onTransferClick={() => setShowTransferModal(true)}
+          hash={hash}
+          mintedTokenId={
+            mintedTokenId ?? 
+            (tokenIds && tokenIds.length > 0 
+              ? Number(tokenIds[tokenIds.length - 1]) 
+              : null)
+          }
+          address={address}
+          result={result}
+          userInfo={userInfo}
+        />
+
+        {/* Transfer Confirmation Modal */}
+        <NFTTransferModal
+          isOpen={showTransferModal}
+          onClose={() => setShowTransferModal(false)}
+          onTransfer={handleTransferNFT}
+          mintedTokenId={
+            mintedTokenId ?? 
+            (tokenIds && tokenIds.length > 0 
+              ? Number(tokenIds[tokenIds.length - 1]) 
+              : null)
+          }
+          address={address}
+          isTransferPending={isTransferPending}
+          isTransferConfirming={isTransferConfirming}
+          isTransferConfirmed={isTransferConfirmed}
+          transferring={transferring}
+        />
 
       </div>
     </div>

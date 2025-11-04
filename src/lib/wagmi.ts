@@ -1,16 +1,20 @@
-import { getDefaultConfig } from '@rainbow-me/rainbowkit';
-import { baseSepolia } from 'wagmi/chains';
+import { createConfig, http } from 'wagmi';
+import { base } from 'wagmi/chains';
+import { baseAccount } from 'wagmi/connectors';
 
-export const config = getDefaultConfig({
-  appName: 'Web3Twin',
-  projectId: 'demo-project-id-for-local-dev',
-  chains: [baseSepolia],
-  ssr: true,
-  walletConnectOptions: {
-    showQrModal: false,
+export const config = createConfig({
+  chains: [base],
+  connectors: [
+    baseAccount({
+      appName: 'Web3Twin',
+    }),
+  ],
+  transports: {
+    [base.id]: http(),
   },
+  ssr: true,
 });
 
 export const CONTRACT_ADDRESS = {
-  baseSepolia: '0x9405955F3061342bDaf064f338a5dc44C435c69c',
+  base: '0x9896849284779B561fbE4420F56b93a46b2efB39',
 } as const;

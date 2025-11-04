@@ -60,7 +60,7 @@ export function useUserNFTs() {
     isLoading: isLoadingTokens,
     refetch: refetchTokens
   } = useReadContract({
-    address: CONTRACT_ADDRESS.baseSepolia,
+    address: CONTRACT_ADDRESS.base,
     abi: CONTRACT_ABI,
     functionName: 'getUserTokens',
     args: address ? [address] : undefined,

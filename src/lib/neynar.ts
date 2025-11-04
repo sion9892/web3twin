@@ -18,6 +18,7 @@ export interface FollowerData {
   username: string;
   display_name: string;
   pfp_url: string;
+  pfp?: { url?: string; [key: string]: any }; // pfp 객체 (선택적)
 }
 
 /**
@@ -98,12 +99,44 @@ export async function getFollowers(fid: number, limit: number = 100): Promise<Fo
       }
       
       const data = await response.json();
-      return data.result?.users?.map((user: any) => ({
-        fid: user.fid,
-        username: user.username,
-        display_name: user.display_name,
-        pfp_url: user.pfp_url,
-      })) || [];
+      console.log('🔍 Followers API full response:', JSON.stringify(data, null, 2)); // 전체 응답 확인
+      console.log('🔍 Followers API response sample:', data.result?.users?.[0]); // 디버깅용
+      
+      // 첫 번째 사용자의 전체 객체 확인
+      if (data.result?.users?.[0]) {
+        const firstUser = data.result.users[0];
+        console.log('🔍 First user full object:', JSON.stringify(firstUser, null, 2));
+        console.log('🔍 First user pfp_url:', firstUser.pfp_url);
+        console.log('🔍 First user pfp object:', firstUser.pfp);
+        console.log('🔍 First user available keys:', Object.keys(firstUser));
+        console.log('🔍 pfp object keys:', firstUser.pfp ? Object.keys(firstUser.pfp) : 'pfp object 없음');
+      }
+      
+      return data.result?.users?.map((user: any) => {
+        // pfp 객체를 우선적으로 활용 (pfp?.url → pfp_url → pfpUrl 순서)
+        const pfpUrl = user.pfp?.url || user.pfp_url || user.pfpUrl || '';
+        
+        // pfp 객체 확인
+        if (user.pfp) {
+          console.log(`🔍 User ${user.username} has pfp object:`, JSON.stringify(user.pfp, null, 2));
+          console.log(`🔍 Using pfp.url: ${user.pfp?.url || '없음'}`);
+        }
+        
+        if (!pfpUrl) {
+          console.warn(`⚠️ User ${user.username} has no pfp_url. Available fields:`, Object.keys(user));
+          if (user.pfp) {
+            console.warn(`⚠️ But has pfp object:`, user.pfp);
+          }
+        }
+        
+        return {
+          fid: user.fid,
+          username: user.username,
+          display_name: user.display_name,
+          pfp_url: pfpUrl,
+          pfp: user.pfp, // pfp 객체 전체도 저장
+        };
+      }) || [];
     }
     
     const response = await fetch(`${API_BASE}/api/neynar-proxy?endpoint=followers&fid=${fid}&limit=${limit}`);
@@ -114,7 +147,24 @@ export async function getFollowers(fid: number, limit: number = 100): Promise<Fo
     }
     
     const data = await response.json();
-    return data.users || [];
+    console.log('🔍 Followers Proxy full response:', JSON.stringify(data, null, 2)); // 전체 응답 확인
+    console.log('🔍 Followers Proxy response sample:', data.users?.[0]); // 디버깅용
+    // 프록시 응답의 구조를 확인하고 올바르게 매핑
+    if (Array.isArray(data.users)) {
+      return data.users.map((user: any) => {
+        // pfp 객체를 우선적으로 활용
+        const pfpUrl = user.pfp?.url || user.pfp_url || user.pfpUrl || '';
+        console.log(`🔍 Proxy User ${user.username} pfp_url:`, pfpUrl, 'from:', { pfp_url: user.pfp_url, pfpUrl: user.pfpUrl, pfp: user.pfp });
+        return {
+          fid: user.fid,
+          username: user.username,
+          display_name: user.display_name || user.displayName,
+          pfp_url: pfpUrl,
+          pfp: user.pfp, // pfp 객체 전체도 저장
+        };
+      });
+    }
+    return [];
   } catch (error) {
     console.error('Error fetching followers:', error);
     return [];
@@ -143,12 +193,34 @@ export async function getFollowing(fid: number, limit: number = 100): Promise<Fo
       }
       
       const data = await response.json();
-      return data.result?.users?.map((user: any) => ({
-        fid: user.fid,
-        username: user.username,
-        display_name: user.display_name,
-        pfp_url: user.pfp_url,
-      })) || [];
+      console.log('🔍 Following API response sample:', data.result?.users?.[0]); // 디버깅용
+      
+      // 첫 번째 사용자의 pfp 객체 확인
+      if (data.result?.users?.[0]) {
+        const firstUser = data.result.users[0];
+        console.log('🔍 First user pfp object:', firstUser.pfp);
+        console.log('🔍 pfp object keys:', firstUser.pfp ? Object.keys(firstUser.pfp) : 'pfp object 없음');
+      }
+      
+      return data.result?.users?.map((user: any) => {
+        // pfp 객체를 우선적으로 활용
+        const pfpUrl = user.pfp?.url || user.pfp_url || user.pfpUrl || '';
+        
+        // pfp 객체 확인
+        if (user.pfp) {
+          console.log(`🔍 User ${user.username} has pfp object:`, JSON.stringify(user.pfp, null, 2));
+          console.log(`🔍 Using pfp.url: ${user.pfp?.url || '없음'}`);
+        }
+        
+        console.log(`🔍 User ${user.username} pfp_url:`, pfpUrl, 'from:', { pfp_url: user.pfp_url, pfpUrl: user.pfpUrl, pfp: user.pfp });
+        return {
+          fid: user.fid,
+          username: user.username,
+          display_name: user.display_name,
+          pfp_url: pfpUrl,
+          pfp: user.pfp, // pfp 객체 전체도 저장
+        };
+      }) || [];
     }
     
     const response = await fetch(`${API_BASE}/api/neynar-proxy?endpoint=following&fid=${fid}&limit=${limit}`);
@@ -159,7 +231,22 @@ export async function getFollowing(fid: number, limit: number = 100): Promise<Fo
     }
     
     const data = await response.json();
-    return data.users || [];
+    console.log('🔍 Following Proxy response sample:', data.users?.[0]); // 디버깅용
+    // 프록시 응답의 구조를 확인하고 올바르게 매핑
+    if (Array.isArray(data.users)) {
+      return data.users.map((user: any) => {
+        // pfp 객체를 우선적으로 활용
+        const pfpUrl = user.pfp?.url || user.pfp_url || user.pfpUrl || '';
+        return {
+          fid: user.fid,
+          username: user.username,
+          display_name: user.display_name || user.displayName,
+          pfp_url: pfpUrl,
+          pfp: user.pfp, // pfp 객체 전체도 저장
+        };
+      });
+    }
+    return [];
   } catch (error) {
     console.error('Error fetching following:', error);
     return [];

@@ -2,13 +2,10 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { WagmiProvider } from 'wagmi'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { RainbowKitProvider } from '@rainbow-me/rainbowkit'
 import { config } from './lib/wagmi'
-import { baseSepolia } from 'wagmi/chains'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import App from './App'
 import './index.css'
-import '@rainbow-me/rainbowkit/styles.css'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -29,13 +26,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <ErrorBoundary>
       <WagmiProvider config={config}>
         <QueryClientProvider client={queryClient}>
-          <RainbowKitProvider
-            modalSize="compact"
-            initialChain={baseSepolia}
-            showRecentTransactions={true}
-          >
-            <App />
-          </RainbowKitProvider>
+          <App />
         </QueryClientProvider>
       </WagmiProvider>
     </ErrorBoundary>
