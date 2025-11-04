@@ -27,11 +27,6 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
-    // 환경 변수 설정
-    define: {
-      'import.meta.env.PROD': JSON.stringify(isProduction),
-      'import.meta.env.DEV': JSON.stringify(!isProduction),
-    },
   }
 })
 
