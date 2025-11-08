@@ -28,7 +28,7 @@ export default function Step3Result({
 }: Step3ResultProps) {
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
-  const { mintNFT, isPending, isConfirming, isConfirmed, hash, error: mintContractError, mintedTokenId } = useMintNFT();
+  const { mintNFT, isPending, isConfirming, isConfirmed, hash, error: mintContractError, mintedTokenId, mintedTokenURI } = useMintNFT();
   const { tokenIds, refetchTokens } = useUserNFTs();
   const [result, setResult] = useState<SimilarityResult | null>(null);
   const [loading, setLoading] = useState(true);
@@ -509,6 +509,7 @@ export default function Step3Result({
           result={result}
           userInfo={userInfo}
           transactionHash={hash}
+          tokenURI={mintedTokenURI}
         />
 
       </div>

@@ -40,6 +40,7 @@ export function useMintNFT() {
   });
 
   const [mintedTokenId, setMintedTokenId] = useState<number | null>(null);
+  const [mintedTokenURI, setMintedTokenURI] = useState<string | null>(null);
 
   // Extract tokenId from transaction receipt logs
   useEffect(() => {

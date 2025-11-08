@@ -10,6 +10,7 @@ interface NFTSuccessModalProps {
   result: SimilarityResult | null;
   userInfo: { username: string; fid: number; pfp_url?: string };
   transactionHash?: string;
+  tokenURI?: string | null;
 }
 
 export default function NFTSuccessModal({
@@ -20,6 +21,7 @@ export default function NFTSuccessModal({
   result,
   userInfo,
   transactionHash,
+  tokenURI,
 }: NFTSuccessModalProps) {
   if (!isOpen) return null;
 
@@ -69,7 +71,7 @@ export default function NFTSuccessModal({
             <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '0.5rem' }}>
               ✅ Your Starry Night NFT has been minted on Base!
             </p>
-            {mintedTokenId && (
+            {tokenURI && (
               <div style={{ 
                 background: '#fff',
                 padding: '0.75rem',
@@ -78,17 +80,23 @@ export default function NFTSuccessModal({
                 border: '1px solid #e5e7eb'
               }}>
                 <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '0.25rem', fontWeight: '600' }}>
-                  Token ID:
+                  IPFS Metadata URL:
                 </p>
-                <p style={{ 
-                  fontSize: '1.1rem', 
-                  color: '#8b5cf6', 
-                  fontFamily: 'monospace',
-                  fontWeight: 'bold',
-                  wordBreak: 'break-all'
-                }}>
-                  #{mintedTokenId}
-                </p>
+                <a
+                  href={tokenURI}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ 
+                    fontSize: '0.85rem', 
+                    color: '#8b5cf6', 
+                    fontFamily: 'monospace',
+                    wordBreak: 'break-all',
+                    textDecoration: 'underline',
+                    display: 'block'
+                  }}
+                >
+                  {tokenURI}
+                </a>
               </div>
             )}
             <p style={{ fontSize: '0.85rem', color: '#999', marginBottom: '0.5rem' }}>
