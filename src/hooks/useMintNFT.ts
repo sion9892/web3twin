@@ -126,9 +126,11 @@ export function useMintNFT() {
       throw new Error(`Failed to upload metadata to IPFS: ${error.message}`);
     }
     
-    // Use IPFS URL as tokenURI
-    const tokenURI = metadataIpfsUrl;
-    console.log('✅ Using IPFS tokenURI:', tokenURI);
+    // Convert metadata IPFS URL to HTTP gateway URL for Basescan compatibility
+    // Basescan needs HTTP URLs to fetch metadata directly
+    const tokenURI = ipfsToHttp(metadataIpfsUrl);
+    console.log('✅ Using HTTP gateway tokenURI:', tokenURI);
+    console.log('📝 Original IPFS URL:', metadataIpfsUrl);
     
     const contractArgs: [`0x${string}`, `0x${string}`, bigint, string, string, string] = [
       user1Address as `0x${string}`,
