@@ -161,7 +161,37 @@ contract Web3TwinNFT is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
             return string(abi.encodePacked(_baseURI(), Strings.toString(tokenId)));
         }
         
-        // Return stored IPFS URL
+        // Fix: Handle incorrectly stored tokenURI format
+        // If storedURI contains API endpoint with IPFS URL, extract the IPFS URL
+        // Example: "https://web3twin.vercel.app/api/metadata/https://ipfs.io/ipfs/Qm..." 
+        // Should be: "https://ipfs.io/ipfs/Qm..."
+        bytes memory apiPrefix = bytes("https://web3twin.vercel.app/api/metadata/");
+        bytes memory storedBytes = bytes(storedURI);
+        
+        // Check if storedURI starts with API endpoint prefix
+        bool hasApiPrefix = storedBytes.length >= apiPrefix.length;
+        if (hasApiPrefix) {
+            for (uint i = 0; i < apiPrefix.length; i++) {
+                if (storedBytes[i] != apiPrefix[i]) {
+                    hasApiPrefix = false;
+                    break;
+                }
+            }
+        }
+        
+        // If it has API prefix, extract the IPFS URL part
+        if (hasApiPrefix) {
+            // Extract substring after API prefix
+            uint256 ipfsStart = apiPrefix.length;
+            uint256 ipfsLength = storedBytes.length - ipfsStart;
+            bytes memory ipfsBytes = new bytes(ipfsLength);
+            for (uint i = 0; i < ipfsLength; i++) {
+                ipfsBytes[i] = storedBytes[ipfsStart + i];
+            }
+            return string(ipfsBytes);
+        }
+        
+        // Return stored IPFS URL (already correct format)
         return storedURI;
     }
     
