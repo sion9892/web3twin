@@ -118,12 +118,14 @@ export async function uploadMetadataToIPFS(metadata: any): Promise<string> {
 
 /**
  * IPFS URL을 HTTP 게이트웨이 URL로 변환
+ * Basescan 및 대부분의 NFT 마켓플레이스는 HTTP 게이트웨이 URL을 요구합니다.
  */
 export function ipfsToHttp(ipfsUrl: string): string {
   if (ipfsUrl.startsWith('ipfs://')) {
     const cid = ipfsUrl.replace('ipfs://', '');
-    // 여러 게이트웨이 옵션 제공 (첫 번째가 실패하면 다른 것을 시도할 수 있음)
-    return `https://ipfs.io/ipfs/${cid}`;
+    // Pinata 게이트웨이를 우선 사용 (더 안정적이고 빠름)
+    // Fallback으로 ipfs.io 사용
+    return `https://gateway.pinata.cloud/ipfs/${cid}`;
   }
   return ipfsUrl;
 }

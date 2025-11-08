@@ -2,7 +2,7 @@ import { useWriteContract, useWaitForTransactionReceipt, useReadContract } from 
 import { CONTRACT_ADDRESS } from '../lib/wagmi';
 import { type SimilarityResult } from '../lib/similarity';
 import { generateNFTSVG } from '../lib/generateNFTSVG';
-import { uploadSVGToIPFS, uploadMetadataToIPFS } from '../lib/ipfs';
+import { uploadSVGToIPFS, uploadMetadataToIPFS, ipfsToHttp } from '../lib/ipfs';
 import { useEffect, useState } from 'react';
 
 // ABI for Web3TwinNFT contract
@@ -110,8 +110,10 @@ export function useMintNFT() {
       throw new Error(`Failed to upload SVG to IPFS: ${error.message}`);
     }
     
-    // Update metadata with IPFS image URL
-    metadata.image = imageIpfsUrl;
+    // Update metadata with IPFS image URL (HTTP gateway URL for Basescan compatibility)
+    // Basescan requires HTTP URLs, not ipfs:// URLs
+    metadata.image = ipfsToHttp(imageIpfsUrl);
+    console.log('📝 Metadata image URL (HTTP gateway):', metadata.image);
     
     // Upload metadata to IPFS
     console.log('📤 Uploading metadata to IPFS...');
