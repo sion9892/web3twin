@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { generateNFTSVG } from '../lib/generateNFTSVG';
 import type { SimilarityResult } from '../lib/similarity';
 import { CONTRACT_ADDRESS } from '../lib/wagmi';
@@ -23,7 +24,49 @@ export default function NFTSuccessModal({
   transactionHash,
   tokenURI,
 }: NFTSuccessModalProps) {
+  const [metadataImageUrl, setMetadataImageUrl] = useState<string | null>(null);
+  const [isFetchingImageUrl, setIsFetchingImageUrl] = useState(false);
+
   if (!isOpen) return null;
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function fetchMetadataImage(url: string) {
+      setIsFetchingImageUrl(true);
+      try {
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch metadata: ${response.status}`);
+        }
+        const metadata = await response.json();
+        if (isMounted && metadata?.image && typeof metadata.image === 'string') {
+          setMetadataImageUrl(metadata.image);
+        } else if (isMounted) {
+          setMetadataImageUrl(null);
+        }
+      } catch (error) {
+        console.error('Failed to fetch metadata image URL:', error);
+        if (isMounted) {
+          setMetadataImageUrl(null);
+        }
+      } finally {
+        if (isMounted) {
+          setIsFetchingImageUrl(false);
+        }
+      }
+    }
+
+    if (tokenURI) {
+      fetchMetadataImage(tokenURI);
+    } else {
+      setMetadataImageUrl(null);
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [tokenURI]);
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -71,40 +114,8 @@ export default function NFTSuccessModal({
             <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '0.5rem' }}>
               ✅ Your Starry Night NFT has been minted on Base!
             </p>
-            {tokenURI && (
-              <div style={{ 
-                background: '#fff',
-                padding: '0.75rem',
-                borderRadius: '6px',
-                marginBottom: '0.5rem',
-                border: '1px solid #e5e7eb'
-              }}>
-                <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '0.25rem', fontWeight: '600' }}>
-                  IPFS Metadata URL:
-                </p>
-                <a
-                  href={tokenURI}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ 
-                    fontSize: '0.85rem', 
-                    color: '#8b5cf6', 
-                    fontFamily: 'monospace',
-                    wordBreak: 'break-all',
-                    textDecoration: 'underline',
-                    display: 'block'
-                  }}
-                >
-                  {tokenURI}
-                </a>
-              </div>
-            )}
             <p style={{ fontSize: '0.85rem', color: '#999', marginBottom: '0.5rem' }}>
               You can now view it on blockchain explorers.
-            </p>
-            <p style={{ fontSize: '0.8rem', color: '#999' }}>
-              💡 <strong>Note:</strong> If the NFT image doesn't appear, it may take a few minutes for Basescan to fetch metadata from IPFS. 
-              You can check the metadata directly by clicking the link below.
             </p>
           </div>
           
@@ -120,27 +131,21 @@ export default function NFTSuccessModal({
                 >
                   📱 View NFT on Basescan (Token #{mintedTokenId})
                 </a>
-                {transactionHash && (
-                  <a
-                    href={`https://basescan.org/tx/${transactionHash}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="secondary-button"
-                    style={{ fontSize: '0.85rem' }}
-                  >
-                    🔗 View Transaction on Basescan
-                  </a>
-                )}
-                <a
-                  href={`https://basescan.org/address/${CONTRACT_ADDRESS.base}#readContract`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="secondary-button"
-                  style={{ fontSize: '0.85rem' }}
-                >
-                  🔍 Check tokenURI on Basescan (Read Contract)
-                </a>
               </>
+            )}
+            {metadataImageUrl && (
+              <a
+                href={metadataImageUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="secondary-button"
+                style={{ fontSize: '0.85rem' }}
+              >
+                🖼️ View NFT Metadata URL
+              </a>
+            )}
+            {!metadataImageUrl && isFetchingImageUrl && (
+              <span style={{ fontSize: '0.8rem', color: '#999' }}>Fetching metadata...</span>
             )}
             
             <button 
