@@ -441,11 +441,13 @@ export default function Step3Result({
           {isConnected && address && (
             <div className="info-card">
               <p>
-                <strong>💰 Low Cost Minting!</strong>
+                <strong>💰 Minting Cost</strong>
                 <br />
-                Web3Twin NFTs are stored entirely on-chain, which may result in gas fees of approximately $0.001-$2.0.
+                Base Smart Wallet을 사용하면 첫 3회까지는 무료로 민팅할 수 있습니다.
                 <br />
-                <small>💡 Base is an Ethereum Layer 2 network with gas fees that are 100x cheaper.</small>
+                이후에는 약 $0.001-$0.01의 낮은 가스비가 발생할 수 있습니다.
+                <br />
+                <small>💡 Base는 Ethereum Layer 2 네트워크로 가스비가 매우 저렴합니다.</small>
               </p>
             </div>
           )}
