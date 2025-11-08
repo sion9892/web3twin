@@ -119,6 +119,7 @@ export default function Step3Result({
   const handleMintNFT = async () => {
     if (!result || !address) {
       console.error('Missing result or address:', { result, address });
+      alert('Missing required information. Please try again.');
       return;
     }
     
@@ -130,13 +131,31 @@ export default function Step3Result({
     try {
       // Check if connected to correct network (Base mainnet)
       if (chainId !== 8453) {
-        console.error('❌ Wrong network! Expected Base (8453), got:', chainId);
+        const errorMsg = `Please switch to Base network. Current network: ${chainId}, Required: 8453`;
+        console.error('❌ Wrong network!', errorMsg);
+        alert(errorMsg);
         setMinting(false);
         setHasError(true);
         return;
       }
       
       console.log('✅ Network check passed: Base');
+      
+      // Check Pinata credentials
+      const pinataJWT = import.meta.env.VITE_PINATA_JWT;
+      const pinataApiKey = import.meta.env.VITE_PINATA_API_KEY;
+      const pinataSecretKey = import.meta.env.VITE_PINATA_SECRET_KEY;
+      
+      if (!pinataJWT && (!pinataApiKey || !pinataSecretKey)) {
+        const errorMsg = 'Pinata API credentials are not configured. Please contact support.';
+        console.error('❌ Pinata credentials missing');
+        alert(errorMsg);
+        setMinting(false);
+        setHasError(true);
+        return;
+      }
+      
+      console.log('✅ Pinata credentials check passed');
       
       // Mint the NFT
       console.log('📝 Calling mintNFT with params:', {
@@ -157,6 +176,23 @@ export default function Step3Result({
       console.error('Error code:', err?.code);
       console.error('Full error:', JSON.stringify(err, null, 2));
       
+      // Show user-friendly error message
+      let errorMessage = 'Failed to mint NFT. ';
+      if (err?.message) {
+        if (err.message.includes('Pinata')) {
+          errorMessage += 'IPFS upload failed. Please check your Pinata API credentials.';
+        } else if (err.message.includes('user rejected') || err.code === 4001) {
+          errorMessage += 'Transaction was rejected.';
+        } else if (err.message.includes('insufficient funds')) {
+          errorMessage += 'Insufficient funds for gas.';
+        } else {
+          errorMessage += err.message;
+        }
+      } else {
+        errorMessage += 'Please try again later.';
+      }
+      
+      alert(errorMessage);
       setMinting(false);
       setHasError(true);
     }
@@ -180,6 +216,14 @@ export default function Step3Result({
     if (mintContractError && minting) {
       console.error('❌ Contract error detected:', mintContractError);
       
+      let errorMessage = 'Contract error occurred. ';
+      if (mintContractError.message) {
+        errorMessage += mintContractError.message;
+      } else {
+        errorMessage += 'Please try again later.';
+      }
+      
+      alert(errorMessage);
       setMinting(false);
       setHasError(true);
     }
