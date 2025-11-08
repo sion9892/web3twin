@@ -2,9 +2,16 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createPublicClient, http } from 'viem';
 import { base } from 'viem/chains';
 
-const CONTRACT_ADDRESS = '0x7CBab43654db47850c4B0422E8Bbc63FAd6D5c99';
+const CONTRACT_ADDRESS = '0xbc0A506a658f3013AFB5941F37628d008306309B';
 
 const CONTRACT_ABI = [
+  {
+    "inputs": [{"name": "_tokenId", "type": "uint256"}],
+    "name": "ownerOf",
+    "outputs": [{"name": "", "type": "address"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
   {
     "inputs": [{"name": "_tokenId", "type": "uint256"}],
     "name": "getTwinMatch",
@@ -61,16 +68,38 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       transport: http(),
     });
 
+    // First check if token exists by calling ownerOf
+    try {
+      await publicClient.readContract({
+        address: CONTRACT_ADDRESS as `0x${string}`,
+        abi: CONTRACT_ABI,
+        functionName: 'ownerOf',
+        args: [BigInt(tokenIdNum)],
+      });
+    } catch (error: any) {
+      // Token doesn't exist
+      return res.status(404).json({ error: 'Token not found' });
+    }
+
     // Get twin match data from contract
-    const twinMatch = await publicClient.readContract({
-      address: CONTRACT_ADDRESS as `0x${string}`,
-      abi: CONTRACT_ABI,
-      functionName: 'getTwinMatch',
-      args: [BigInt(tokenIdNum)],
-    });
+    let twinMatch: any;
+    try {
+      twinMatch = await publicClient.readContract({
+        address: CONTRACT_ADDRESS as `0x${string}`,
+        abi: CONTRACT_ABI,
+        functionName: 'getTwinMatch',
+        args: [BigInt(tokenIdNum)],
+      });
+    } catch (error: any) {
+      console.error('Error fetching twin match:', error);
+      return res.status(500).json({ 
+        error: 'Failed to fetch twin match data',
+        message: error.message 
+      });
+    }
 
     if (!twinMatch) {
-      return res.status(404).json({ error: 'Token not found' });
+      return res.status(404).json({ error: 'Twin match data not found' });
     }
 
     // Generate SVG from twin match data

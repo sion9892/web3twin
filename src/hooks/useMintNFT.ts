@@ -2,6 +2,7 @@ import { useWriteContract, useWaitForTransactionReceipt, useReadContract } from 
 import { CONTRACT_ADDRESS } from '../lib/wagmi';
 import { type SimilarityResult } from '../lib/similarity';
 import { generateNFTSVG } from '../lib/generateNFTSVG';
+import { uploadSVGToIPFS, uploadMetadataToIPFS } from '../lib/ipfs';
 import { useEffect, useState } from 'react';
 
 // ABI for Web3TwinNFT contract
@@ -94,15 +95,38 @@ export function useMintNFT() {
     console.log('Similarity Result:', result);
     console.log('Contract Address:', CONTRACT_ADDRESS.base);
     
-    // Generate SVG and metadata (현재는 사용하지 않지만 나중을 위해 유지)
+    // Generate SVG and metadata
     console.log('📤 Generating NFT metadata...');
-    generateNFTData(result, user1Username, user1PfpUrl); // 호출만 하고 결과는 사용하지 않음
+    const { svg, metadata } = generateNFTData(result, user1Username, user1PfpUrl);
     
-    // tokenURI는 빈 문자열로 설정 (컨트랙트의 tokenURI 함수가 _baseURI() + tokenId를 반환하도록 오버라이드됨)
-    // 실제 메타데이터는 api/metadata/[tokenId].ts에서 컨트랙트의 getTwinMatch를 읽어서 동적으로 생성
-    // 컨트랙트의 tokenURI 함수가 항상 올바른 메타데이터 URL을 반환하므로, 저장된 값은 무시됨
-    const tokenURI = '';
-    console.log('✅ Using empty tokenURI (contract will generate correct URL)');
+    // Upload SVG to IPFS
+    console.log('📤 Uploading SVG to IPFS...');
+    let imageIpfsUrl: string;
+    try {
+      imageIpfsUrl = await uploadSVGToIPFS(svg, `nft-${Date.now()}.svg`);
+      console.log('✅ SVG uploaded to IPFS:', imageIpfsUrl);
+    } catch (error: any) {
+      console.error('❌ Failed to upload SVG to IPFS:', error);
+      throw new Error(`Failed to upload SVG to IPFS: ${error.message}`);
+    }
+    
+    // Update metadata with IPFS image URL
+    metadata.image = imageIpfsUrl;
+    
+    // Upload metadata to IPFS
+    console.log('📤 Uploading metadata to IPFS...');
+    let metadataIpfsUrl: string;
+    try {
+      metadataIpfsUrl = await uploadMetadataToIPFS(metadata);
+      console.log('✅ Metadata uploaded to IPFS:', metadataIpfsUrl);
+    } catch (error: any) {
+      console.error('❌ Failed to upload metadata to IPFS:', error);
+      throw new Error(`Failed to upload metadata to IPFS: ${error.message}`);
+    }
+    
+    // Use IPFS URL as tokenURI
+    const tokenURI = metadataIpfsUrl;
+    console.log('✅ Using IPFS tokenURI:', tokenURI);
     
     const contractArgs: [`0x${string}`, `0x${string}`, bigint, string, string, string] = [
       user1Address as `0x${string}`,
