@@ -16,5 +16,5 @@ export const config = createConfig({
 });
 
 export const CONTRACT_ADDRESS = {
-  base: '0x8bD8E7e65c6cd8DE4aF4eB15c634560489366509',
+  base: '0x7CBab43654db47850c4B0422E8Bbc63FAd6D5c99',
 } as const;

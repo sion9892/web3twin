@@ -52,7 +52,8 @@ contract Web3TwinNFT is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
         uint256 tokenId = _nextTokenId++;
         
         _safeMint(_user1, tokenId);
-        _setTokenURI(tokenId, _tokenURI);
+        // tokenURI is dynamically generated, no need to store it
+        // _setTokenURI(tokenId, _tokenURI);
         
         twinMatches[tokenId] = TwinMatch({
             user1: _user1,
@@ -90,7 +91,8 @@ contract Web3TwinNFT is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
         uint256 tokenId = _nextTokenId++;
         
         _safeMint(_user1, tokenId);
-        _setTokenURI(tokenId, _tokenURI);
+        // tokenURI is dynamically generated, no need to store it
+        // _setTokenURI(tokenId, _tokenURI);
         
         twinMatches[tokenId] = TwinMatch({
             user1: _user1,
