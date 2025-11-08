@@ -146,9 +146,22 @@ export default function Step3Result({
       const pinataApiKey = import.meta.env.VITE_PINATA_API_KEY;
       const pinataSecretKey = import.meta.env.VITE_PINATA_SECRET_KEY;
       
+      // 디버깅: 환경 변수 확인
+      console.log('🔍 Pinata Environment Variables:', {
+        hasJWT: !!pinataJWT,
+        hasApiKey: !!pinataApiKey,
+        hasSecretKey: !!pinataSecretKey,
+        jwtLength: pinataJWT?.length || 0,
+        allEnvVars: Object.keys(import.meta.env).filter(key => key.includes('PINATA')),
+      });
+      
       if (!pinataJWT && (!pinataApiKey || !pinataSecretKey)) {
-        const errorMsg = 'Pinata API credentials are not configured. Please contact support.';
-        console.error('❌ Pinata credentials missing');
+        const errorMsg = `Pinata API credentials are not configured.\n\nPlease check:\n1. Vercel Environment Variables에 VITE_PINATA_JWT가 설정되어 있는지 확인\n2. 재배포 후 브라우저 캐시를 클리어하세요 (Cmd+Shift+R 또는 Ctrl+Shift+R)\n3. Vercel 대시보드에서 환경 변수가 Production, Preview, Development 모두에 설정되어 있는지 확인`;
+        console.error('❌ Pinata credentials missing:', {
+          pinataJWT: pinataJWT ? 'SET (hidden)' : 'NOT SET',
+          pinataApiKey: pinataApiKey ? 'SET (hidden)' : 'NOT SET',
+          pinataSecretKey: pinataSecretKey ? 'SET (hidden)' : 'NOT SET',
+        });
         alert(errorMsg);
         setMinting(false);
         setHasError(true);

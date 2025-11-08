@@ -3,6 +3,17 @@ const PINATA_API_KEY = import.meta.env.VITE_PINATA_API_KEY || '';
 const PINATA_SECRET_KEY = import.meta.env.VITE_PINATA_SECRET_KEY || '';
 const PINATA_JWT = import.meta.env.VITE_PINATA_JWT || '';
 
+// 디버깅: 환경 변수 로드 확인 (프로덕션에서는 숨김)
+if (typeof window !== 'undefined') {
+  console.log('🔍 Pinata Environment Variables Check:', {
+    hasJWT: !!PINATA_JWT,
+    hasApiKey: !!PINATA_API_KEY,
+    hasSecretKey: !!PINATA_SECRET_KEY,
+    jwtLength: PINATA_JWT?.length || 0,
+    // 실제 값은 보안상 로그하지 않음
+  });
+}
+
 /**
  * SVG를 IPFS에 업로드하고 CID를 반환 (Pinata REST API 사용)
  */
