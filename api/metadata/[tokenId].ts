@@ -1,8 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createPublicClient, http } from 'viem';
 import { base } from 'viem/chains';
+import { buildTwinMatchMetadata } from '../../lib/twinMetadata';
 
 const CONTRACT_ADDRESS = '0x2C4C60cfF5CB69B3Cb6BEd2f28fFBDd7F8987706';
+const IPFS_IMAGE_BASE_CID =
+  'QmXTAJc96BuZ4dtX2BMiUiGeQy73AYbBXMn6yaRCcLQHaq';
 
 const CONTRACT_ABI = [
   {
@@ -115,32 +118,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ? `https://${process.env.VERCEL_URL}` 
       : 'https://web3twin.vercel.app';
     
-    const similarity = Number(twinMatch.similarity);
-    const sharedHashtags = twinMatch.sharedHashtags ? twinMatch.sharedHashtags.split(', ').filter(Boolean) : [];
-    
-    const metadata = {
-      name: `Twin Match #${tokenId} - ${similarity}% Match`,
-      description: `✨ Starry Night Match Found! Two Farcaster users share a ${similarity}% compatibility under the stars! They share ${sharedHashtags.length} common interests${sharedHashtags.length > 0 ? ': ' + sharedHashtags.slice(0, 3).join(', ') : ''}. A beautiful connection in the night sky! ⭐`,
-      image: `${baseUrl}/api/image/${tokenId}`,
-      attributes: [
-        {
-          trait_type: "Similarity Score",
-          value: similarity.toFixed(1) + "%"
-        },
-        {
-          trait_type: "Night Sky Mood",
-          value: similarity > 80 ? "Brilliant ✨" : similarity > 60 ? "Starry 🌟" : "Moonlit 🌙"
-        },
-        {
-          trait_type: "Shared Topics",
-          value: sharedHashtags.length
-        },
-        {
-          trait_type: "Sky Color",
-          value: similarity > 80 ? "Starry Blue" : similarity > 60 ? "Deep Blue" : "Midnight Blue"
-        }
-      ]
-    };
+    const ipfsImageCid = process.env.IPFS_IMAGE_CID ?? IPFS_IMAGE_BASE_CID;
+
+    const metadata = buildTwinMatchMetadata({
+      tokenId: tokenIdNum,
+      similarity: twinMatch.similarity,
+      sharedHashtags: twinMatch.sharedHashtags,
+      ipfsImageCid,
+      imageExtension: 'svg',
+      externalBaseUrl: baseUrl,
+    });
 
     return res.status(200).json(metadata);
   } catch (error: any) {

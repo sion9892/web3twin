@@ -52,8 +52,8 @@ contract Web3TwinNFT is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
         uint256 tokenId = _nextTokenId++;
         
         _safeMint(_user1, tokenId);
-        // Store IPFS URL for tokenURI
-        _setTokenURI(tokenId, _tokenURI);
+        // Store sanitized IPFS URL for tokenURI
+        _setTokenURI(tokenId, _sanitizeTokenURI(_tokenURI));
         
         twinMatches[tokenId] = TwinMatch({
             user1: _user1,
@@ -91,8 +91,8 @@ contract Web3TwinNFT is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
         uint256 tokenId = _nextTokenId++;
         
         _safeMint(_user1, tokenId);
-        // Store IPFS URL for tokenURI
-        _setTokenURI(tokenId, _tokenURI);
+        // Store sanitized IPFS URL for tokenURI
+        _setTokenURI(tokenId, _sanitizeTokenURI(_tokenURI));
         
         twinMatches[tokenId] = TwinMatch({
             user1: _user1,
@@ -161,38 +161,23 @@ contract Web3TwinNFT is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
             return string(abi.encodePacked(_baseURI(), Strings.toString(tokenId)));
         }
         
-        // Fix: Handle incorrectly stored tokenURI format
-        // If storedURI contains API endpoint with IPFS URL, extract the IPFS URL
-        // Example: "https://web3twin.vercel.app/api/metadata/https://ipfs.io/ipfs/Qm..." 
-        // Should be: "https://ipfs.io/ipfs/Qm..."
-        bytes memory apiPrefix = bytes("https://web3twin.vercel.app/api/metadata/");
-        bytes memory storedBytes = bytes(storedURI);
-        
-        // Check if storedURI starts with API endpoint prefix
-        bool hasApiPrefix = storedBytes.length >= apiPrefix.length;
-        if (hasApiPrefix) {
-            for (uint i = 0; i < apiPrefix.length; i++) {
-                if (storedBytes[i] != apiPrefix[i]) {
-                    hasApiPrefix = false;
+        // If stored URI already uses ipfs:// scheme, return as-is
+        bytes memory ipfsPrefix = bytes("ipfs://");
+        bool hasIpfsPrefix = storedURIBytes.length >= ipfsPrefix.length;
+        if (hasIpfsPrefix) {
+            for (uint256 i = 0; i < ipfsPrefix.length; i++) {
+                if (storedURIBytes[i] != ipfsPrefix[i]) {
+                    hasIpfsPrefix = false;
                     break;
                 }
             }
         }
-        
-        // If it has API prefix, extract the IPFS URL part
-        if (hasApiPrefix) {
-            // Extract substring after API prefix
-            uint256 ipfsStart = apiPrefix.length;
-            uint256 ipfsLength = storedBytes.length - ipfsStart;
-            bytes memory ipfsBytes = new bytes(ipfsLength);
-            for (uint i = 0; i < ipfsLength; i++) {
-                ipfsBytes[i] = storedBytes[ipfsStart + i];
-            }
-            return string(ipfsBytes);
+        if (hasIpfsPrefix) {
+            return storedURI;
         }
-        
-        // Return stored IPFS URL (already correct format)
-        return storedURI;
+
+        // Legacy support: sanitize URI that was stored in older formats
+        return _sanitizeTokenURI(storedURI);
     }
     
     function supportsInterface(bytes4 interfaceId)
@@ -202,5 +187,73 @@ contract Web3TwinNFT is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
         returns (bool)
     {
         return super.supportsInterface(interfaceId);
+    }
+
+    function _sanitizeTokenURI(string memory rawURI) internal pure returns (string memory) {
+        bytes memory rawBytes = bytes(rawURI);
+        require(rawBytes.length > 0, "Invalid tokenURI");
+
+        bytes memory ipfsScheme = bytes("ipfs://");
+        if (_hasPrefix(rawBytes, ipfsScheme)) {
+            return rawURI;
+        }
+
+        bytes memory apiPrefix = bytes("https://web3twin.vercel.app/api/metadata/");
+        if (_hasPrefix(rawBytes, apiPrefix)) {
+            bytes memory stripped = _substring(rawBytes, apiPrefix.length, rawBytes.length - apiPrefix.length);
+            return _sanitizeTokenURI(string(stripped));
+        }
+
+        bytes memory ipfsPath = _extractIpfsPath(rawBytes);
+        if (ipfsPath.length > 0) {
+            return string(abi.encodePacked("ipfs://", ipfsPath));
+        }
+
+        revert("Unsupported tokenURI");
+    }
+
+    function _hasPrefix(bytes memory data, bytes memory prefix) internal pure returns (bool) {
+        if (data.length < prefix.length) {
+            return false;
+        }
+        for (uint256 i = 0; i < prefix.length; i++) {
+            if (data[i] != prefix[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    function _substring(bytes memory data, uint256 start, uint256 length) internal pure returns (bytes memory) {
+        bytes memory result = new bytes(length);
+        for (uint256 i = 0; i < length; i++) {
+            result[i] = data[start + i];
+        }
+        return result;
+    }
+
+    function _extractIpfsPath(bytes memory data) internal pure returns (bytes memory) {
+        bytes memory needle = bytes("ipfs/");
+        if (data.length < needle.length) {
+            return new bytes(0);
+        }
+
+        for (uint256 i = 0; i <= data.length - needle.length; i++) {
+            bool matchNeedle = true;
+            for (uint256 j = 0; j < needle.length; j++) {
+                if (data[i + j] != needle[j]) {
+                    matchNeedle = false;
+                    break;
+                }
+            }
+            if (matchNeedle) {
+                uint256 start = i + needle.length;
+                if (start >= data.length) {
+                    return new bytes(0);
+                }
+                return _substring(data, start, data.length - start);
+            }
+        }
+        return new bytes(0);
     }
 }
