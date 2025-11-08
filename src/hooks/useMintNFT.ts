@@ -98,11 +98,11 @@ export function useMintNFT() {
     console.log('📤 Generating NFT metadata...');
     generateNFTData(result, user1Username, user1PfpUrl); // 호출만 하고 결과는 사용하지 않음
     
-    // tokenURI는 짧은 문자열로 설정 (data URI는 너무 길어서 가스 제한에 걸림)
+    // tokenURI는 빈 문자열로 설정 (컨트랙트의 tokenURI 함수가 _baseURI() + tokenId를 반환하도록 오버라이드됨)
     // 실제 메타데이터는 api/metadata/[tokenId].ts에서 컨트랙트의 getTwinMatch를 읽어서 동적으로 생성
-    // tokenId는 아직 모르므로 임시로 'temp' 사용 (컨트랙트에서 저장만 하고, 실제 조회는 getTwinMatch 사용)
-    const tokenURI = 'temp';
-    console.log('✅ Using short tokenURI to avoid gas limit');
+    // 컨트랙트의 tokenURI 함수가 항상 올바른 메타데이터 URL을 반환하므로, 저장된 값은 무시됨
+    const tokenURI = '';
+    console.log('✅ Using empty tokenURI (contract will generate correct URL)');
     
     const contractArgs: [`0x${string}`, `0x${string}`, bigint, string, string, string] = [
       user1Address as `0x${string}`,

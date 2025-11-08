@@ -153,3 +153,6 @@ sensitive-logs/
 # Configuration files with sensitive data
 hardhat.config.local.*
 config.local.*
+
+# HTML files (presentation materials)
+html-files/

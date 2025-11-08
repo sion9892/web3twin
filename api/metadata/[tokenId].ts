@@ -2,7 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createPublicClient, http } from 'viem';
 import { base } from 'viem/chains';
 
-const CONTRACT_ADDRESS = '0x9896849284779B561fbE4420F56b93a46b2efB39';
+const CONTRACT_ADDRESS = '0x8bD8E7e65c6cd8DE4aF4eB15c634560489366509';
 
 const CONTRACT_ABI = [
   {
