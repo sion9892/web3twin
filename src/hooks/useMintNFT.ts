@@ -176,6 +176,10 @@ export function useMintNFT() {
     console.log('Contract Args:', contractArgs);
     console.log('Calling writeContract...');
     
+    // Store tokenURI before sending transaction
+    setMintedTokenURI(tokenURI);
+    console.log('📝 Stored tokenURI for display:', tokenURI);
+    
     try {
       console.log('📤 Sending transaction to contract...');
       console.log('Function:', 'mintTwinNFT');
