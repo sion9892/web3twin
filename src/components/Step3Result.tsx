@@ -508,6 +508,7 @@ export default function Step3Result({
           address={address}
           result={result}
           userInfo={userInfo}
+          transactionHash={hash}
         />
 
       </div>
