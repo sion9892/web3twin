@@ -142,11 +142,26 @@ export function useMintNFT() {
     console.log('📝 Original IPFS URL:', metadataIpfsUrl);
     console.log('📝 Full metadata JSON:', JSON.stringify(metadata, null, 2));
     
-    // Verify tokenURI format
+    // Verify tokenURI format - MUST be direct IPFS gateway URL, NOT API endpoint
     if (!tokenURI.startsWith('http://') && !tokenURI.startsWith('https://')) {
       console.error('❌ TokenURI is not HTTP format:', tokenURI);
       throw new Error(`Invalid tokenURI format: ${tokenURI}`);
     }
+    
+    // CRITICAL: Ensure tokenURI is NOT an API endpoint
+    if (tokenURI.includes('web3twin.vercel.app/api/metadata/')) {
+      console.error('❌ ERROR: tokenURI contains API endpoint! This should be direct IPFS URL.');
+      console.error('   Current tokenURI:', tokenURI);
+      console.error('   Should be:', metadataIpfsUrl.replace('ipfs://', 'https://ipfs.io/ipfs/'));
+      throw new Error(`Invalid tokenURI format: tokenURI must be direct IPFS gateway URL, not API endpoint. Got: ${tokenURI}`);
+    }
+    
+    // Ensure tokenURI is direct IPFS gateway URL
+    if (!tokenURI.startsWith('https://ipfs.io/ipfs/')) {
+      console.warn('⚠️  Warning: tokenURI is not ipfs.io gateway URL:', tokenURI);
+    }
+    
+    console.log('✅ TokenURI validation passed:', tokenURI);
     
     const contractArgs: [`0x${string}`, `0x${string}`, bigint, string, string, string] = [
       user1Address as `0x${string}`,
