@@ -156,3 +156,6 @@ config.local.*
 
 # HTML files (presentation materials)
 html-files/
+
+# Markdown documentation files (except README.md)
+md-files/
