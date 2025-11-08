@@ -9,6 +9,7 @@ interface NFTSuccessModalProps {
   address: string | undefined;
   result: SimilarityResult | null;
   userInfo: { username: string; fid: number; pfp_url?: string };
+  transactionHash?: string;
 }
 
 export default function NFTSuccessModal({
@@ -18,6 +19,7 @@ export default function NFTSuccessModal({
   address,
   result,
   userInfo,
+  transactionHash,
 }: NFTSuccessModalProps) {
   if (!isOpen) return null;
 
@@ -67,21 +69,34 @@ export default function NFTSuccessModal({
             <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '0.5rem' }}>
               ✅ Your Starry Night NFT has been minted on Base!
             </p>
+            {mintedTokenId && (
+              <div style={{ 
+                background: '#fff',
+                padding: '0.75rem',
+                borderRadius: '6px',
+                marginBottom: '0.5rem',
+                border: '1px solid #e5e7eb'
+              }}>
+                <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '0.25rem', fontWeight: '600' }}>
+                  Token ID:
+                </p>
+                <p style={{ 
+                  fontSize: '1.1rem', 
+                  color: '#8b5cf6', 
+                  fontFamily: 'monospace',
+                  fontWeight: 'bold',
+                  wordBreak: 'break-all'
+                }}>
+                  #{mintedTokenId}
+                </p>
+              </div>
+            )}
             <p style={{ fontSize: '0.85rem', color: '#999', marginBottom: '0.5rem' }}>
               You can now view it on blockchain explorers.
             </p>
             <p style={{ fontSize: '0.8rem', color: '#999' }}>
-              💡 <strong>Note:</strong> If the NFT doesn't appear in Base App, it may take a few minutes for indexing. 
-              You can also check on{' '}
-              <a 
-                href={`https://basescan.org/address/${address}#tokentxnsErc721`}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ color: '#8b5cf6', textDecoration: 'underline' }}
-              >
-                Basescan
-              </a>
-              {' '}to verify the NFT exists.
+              💡 <strong>Note:</strong> If the NFT image doesn't appear, it may take a few minutes for Basescan to fetch metadata from IPFS. 
+              You can check the metadata directly by clicking the link below.
             </p>
           </div>
           
@@ -95,7 +110,27 @@ export default function NFTSuccessModal({
                   className="primary-button"
                   style={{ backgroundColor: '#10b981' }}
                 >
-                  📱 View NFT on Basescan
+                  📱 View NFT on Basescan (Token #{mintedTokenId})
+                </a>
+                {transactionHash && (
+                  <a
+                    href={`https://basescan.org/tx/${transactionHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="secondary-button"
+                    style={{ fontSize: '0.85rem' }}
+                  >
+                    🔗 View Transaction on Basescan
+                  </a>
+                )}
+                <a
+                  href={`https://basescan.org/address/${CONTRACT_ADDRESS.base}#readContract`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="secondary-button"
+                  style={{ fontSize: '0.85rem' }}
+                >
+                  🔍 Check tokenURI on Basescan (Read Contract)
                 </a>
               </>
             )}

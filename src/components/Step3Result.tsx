@@ -213,16 +213,19 @@ export default function Step3Result({
 
   // Handle transaction confirmation
   useEffect(() => {
-    console.log('Transaction status:', { isConfirmed, minting, isPending, isConfirming });
+    console.log('Transaction status:', { isConfirmed, minting, isPending, isConfirming, hash, mintedTokenId });
     
     if (isConfirmed && minting) {
       console.log('✅ Transaction confirmed!');
+      console.log('📋 Transaction hash:', hash);
+      console.log('🆔 Minted Token ID:', mintedTokenId || tokenIds?.[tokenIds.length - 1]);
+      console.log('🔗 View on Basescan:', hash ? `https://basescan.org/tx/${hash}` : 'N/A');
       refetchTokens();
       setShowNFTModal(true);
       setMinting(false);
       
     }
-  }, [isConfirmed, minting, isPending, isConfirming, refetchTokens, mintedTokenId, address]);
+  }, [isConfirmed, minting, isPending, isConfirming, refetchTokens, mintedTokenId, address, hash, tokenIds]);
 
   // Handle contract errors
   useEffect(() => {
