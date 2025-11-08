@@ -112,8 +112,17 @@ export function useMintNFT() {
     
     // Update metadata with IPFS image URL (HTTP gateway URL for Basescan compatibility)
     // Basescan requires HTTP URLs, not ipfs:// URLs
-    metadata.image = ipfsToHttp(imageIpfsUrl);
-    console.log('📝 Metadata image URL (HTTP gateway):', metadata.image);
+    const imageHttpUrl = ipfsToHttp(imageIpfsUrl);
+    metadata.image = imageHttpUrl;
+    console.log('📝 Image IPFS URL:', imageIpfsUrl);
+    console.log('📝 Image HTTP gateway URL:', imageHttpUrl);
+    console.log('📝 Metadata image field:', metadata.image);
+    
+    // Verify image URL format
+    if (!metadata.image.startsWith('http://') && !metadata.image.startsWith('https://')) {
+      console.error('❌ Image URL is not HTTP format:', metadata.image);
+      throw new Error(`Invalid image URL format: ${metadata.image}`);
+    }
     
     // Upload metadata to IPFS
     console.log('📤 Uploading metadata to IPFS...');
@@ -131,6 +140,13 @@ export function useMintNFT() {
     const tokenURI = ipfsToHttp(metadataIpfsUrl);
     console.log('✅ Using HTTP gateway tokenURI:', tokenURI);
     console.log('📝 Original IPFS URL:', metadataIpfsUrl);
+    console.log('📝 Full metadata JSON:', JSON.stringify(metadata, null, 2));
+    
+    // Verify tokenURI format
+    if (!tokenURI.startsWith('http://') && !tokenURI.startsWith('https://')) {
+      console.error('❌ TokenURI is not HTTP format:', tokenURI);
+      throw new Error(`Invalid tokenURI format: ${tokenURI}`);
+    }
     
     const contractArgs: [`0x${string}`, `0x${string}`, bigint, string, string, string] = [
       user1Address as `0x${string}`,
