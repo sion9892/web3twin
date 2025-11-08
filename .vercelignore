@@ -1,0 +1,15 @@
+contracts/
+scripts/
+artifacts/
+cache/
+test/
+*.sol
+hardhat.config.*
+deploy*.ts
+deploy*.cjs
+fund-*.ts
+test-*.html
+html-files/
+*.md
+!README.md
+

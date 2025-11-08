@@ -16,11 +16,11 @@
     "deploy": "hardhat run scripts/deploy.cjs --network hardhat",
     "node": "hardhat node",
     "fund": "hardhat run scripts/fund-account.ts --network hardhat",
-    "fund-contract": "hardhat run scripts/fund-contract.ts --network hardhat"
+    "fund-contract": "hardhat run scripts/fund-contract.ts --network hardhat",
+    "postinstall": "node scripts/cleanup-vercel.js || true"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.51.1",
-    "dotenv": "^17.2.3",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "viem": "^2.19.4",
@@ -28,6 +28,7 @@
   },
   "devDependencies": {
     "@openzeppelin/contracts": "^5.4.0",
+    "dotenv": "^17.2.3",
     "hardhat": "^2.19.4",
     "@nomicfoundation/hardhat-chai-matchers": "^2.1.0",
     "@nomicfoundation/hardhat-ethers": "^3.1.2",
