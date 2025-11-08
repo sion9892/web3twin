@@ -220,6 +220,7 @@ export function useMintNFT() {
     isConfirming,
     isConfirmed,
     mintedTokenId,
+    mintedTokenURI,
   };
 }
 
